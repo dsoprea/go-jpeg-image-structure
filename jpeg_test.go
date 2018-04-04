@@ -1,10 +1,11 @@
 package exifjpeg
 
 import (
-	// "fmt"
+	"fmt"
 	"os"
 	"path"
 	"testing"
+	"bufio"
 
 	"github.com/dsoprea/go-logging"
 )
@@ -14,45 +15,71 @@ var (
 	testImageRelFilepath = "NDM_8901.jpg"
 )
 
-func TestSeekToNextSegment(t *testing.T) {
+// func TestVerifyIsJpeg(t *testing.T) {
+// 	filepath := path.Join(assetsPath, testImageRelFilepath)
+// 	jn := NewJpegNavigator(filepath)
+// 	defer jn.Close()
+// }
+
+func TestJpegSplitterSplit(t *testing.T) {
+
 	filepath := path.Join(assetsPath, testImageRelFilepath)
-	jn := NewJpegNavigator(filepath)
-	defer jn.Close()
-
-	err := jn.SeekToNextSegment()
+	f, err := os.Open(filepath)
 	log.PanicIf(err)
 
-	si, err := jn.ReadSegment()
+	stat, err := f.Stat()
 	log.PanicIf(err)
 
-	if si.MarkerId != 0xFB {
-		t.Fatalf("Marker 0 not correct: (%X)", si.MarkerId)
+	size := stat.Size()
+
+	js := NewJpegSplitter()
+
+	s := bufio.NewScanner(f)
+
+	// Since each segment can be any size, our buffer must allowed to grow as
+	// large as the file.
+	buffer := []byte {}
+	s.Buffer(buffer, int(size))
+
+	s.Split(js.Split)
+
+	// more := s.Scan()
+	// if more != true || s.Err() != nil {
+	// 	t.Fatalf("more tokens expected (1): %v", s.Err())
+	// }
+
+	// fmt.Printf("MARKER1: %02X\n", js.MarkerId())
+
+	// more = s.Scan()
+	// if more != true || s.Err() != nil {
+	// 	t.Fatalf("more tokens expected (2): %v", s.Err())
+	// }
+
+	// fmt.Printf("MARKER2: %02X\n", js.MarkerId())
+
+	// more = s.Scan()
+	// if more != true || s.Err() != nil {
+	// 	t.Fatalf("more tokens expected (3): %v", s.Err())
+	// }
+
+	// fmt.Printf("MARKER3: %02X\n", js.MarkerId())
+
+	// more = s.Scan()
+	// if more != true || s.Err() != nil {
+	// 	t.Fatalf("more tokens expected (4): %v", s.Err())
+	// }
+
+	// fmt.Printf("MARKER4: %02X\n", js.MarkerId())
+
+	for ; s.Scan() != false; {
+		fmt.Printf("Marker-ID: %02X\n", js.MarkerId())
 	}
 
-	err = jn.SeekToNextSegment()
-	log.PanicIf(err)
+	fmt.Printf("Scan finished.\n")
 
-	si, err = jn.ReadSegment()
-	log.PanicIf(err)
+	log.PanicIf(s.Err())
 
-	if si.MarkerId != 0x0 {
-		t.Fatalf("Marker 1 not correct: (%X)", si.MarkerId)
-	}
-}
-
-func TestVisitSegments(t *testing.T) {
-	filepath := path.Join(assetsPath, testImageRelFilepath)
-	jn := NewJpegNavigator(filepath)
-	defer jn.Close()
-
-	cb := func(markerId byte) (continue_ bool, err error) {
-		// fmt.Printf("CB (%X)\n", markerId)
-
-		return true, nil
-	}
-
-	err := jn.VisitSegments(cb)
-	log.PanicIf(err)
+	fmt.Printf("No errors.\n")
 }
 
 func init() {

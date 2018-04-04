@@ -1,36 +1,54 @@
 package exifjpeg
 
 import (
-	"bufio"
-	"encoding/binary"
-	"io"
 	"os"
+	"bytes"
+
+	"encoding/binary"
 
 	"github.com/dsoprea/go-logging"
 )
 
 const (
-	MARKER_EOI   = 0xD9
-	MARKER_SOS   = 0xDA
+	MARKER_EOI   = 0xd9
+	MARKER_SOS   = 0xda
 	MARKER_SOD   = 0x93
-	MARKER_DQT   = 0xDB
-	MARKER_APP0  = 0xE0
-	MARKER_APP1  = 0xE1
-	MARKER_APP2  = 0xE2
-	MARKER_APP3  = 0xE3
-	MARKER_APP4  = 0xE4
-	MARKER_APP5  = 0xE5
-	MARKER_APP6  = 0xE6
-	MARKER_APP7  = 0xE7
-	MARKER_APP8  = 0xE8
-	MARKER_APP10 = 0xEA
-	MARKER_APP12 = 0xEC
-	MARKER_APP13 = 0xED
-	MARKER_APP14 = 0xEE
-	MARKER_APP15 = 0xEF
-	MARKER_COM   = 0xFE
+	MARKER_DQT   = 0xdb
+	MARKER_APP0  = 0xe0
+	MARKER_APP1  = 0xe1
+	MARKER_APP2  = 0xe2
+	MARKER_APP3  = 0xe3
+	MARKER_APP4  = 0xe4
+	MARKER_APP5  = 0xe5
+	MARKER_APP6  = 0xe6
+	MARKER_APP7  = 0xe7
+	MARKER_APP8  = 0xe8
+	MARKER_APP10 = 0xea
+	MARKER_APP12 = 0xec
+	MARKER_APP13 = 0xed
+	MARKER_APP14 = 0xee
+	MARKER_APP15 = 0xef
+	MARKER_COM   = 0xfe
 	MARKER_CME   = 0x64
 	MARKER_SIZ   = 0x51
+
+	MARKER_DHT = 0xc4
+	MARKER_JPG = 0xc8
+	MARKER_DAC = 0xcc
+
+	MARKER_SOF0 = 0xc0
+	MARKER_SOF1 = 0xc1
+	MARKER_SOF2 = 0xc2
+	MARKER_SOF3 = 0xc3
+	MARKER_SOF5 = 0xc5
+	MARKER_SOF6 = 0xc6
+	MARKER_SOF7 = 0xc7
+	MARKER_SOF9 = 0xc9
+	MARKER_SOF10 = 0xca
+	MARKER_SOF11 = 0xcb
+	MARKER_SOF13 = 0xcd
+	MARKER_SOF14 = 0xce
+	MARKER_SOF15 = 0xcf
 )
 
 var (
@@ -79,22 +97,61 @@ var (
 		0x75: 4,
 		0x77: 4,
 	}
+
+	markerNames = map[byte]string {
+		MARKER_EOI: "EOI",
+		MARKER_SOS: "SOS",
+		MARKER_SOD: "SOD",
+		MARKER_DQT: "DQT",
+		MARKER_APP0: "APP0",
+		MARKER_APP1: "APP1",
+		MARKER_APP2: "APP2",
+		MARKER_APP3: "APP3",
+		MARKER_APP4: "APP4",
+		MARKER_APP5: "APP5",
+		MARKER_APP6: "APP6",
+		MARKER_APP7: "APP7",
+		MARKER_APP8: "APP8",
+		MARKER_APP10: "APP10",
+		MARKER_APP12: "APP12",
+		MARKER_APP13: "APP13",
+		MARKER_APP14: "APP14",
+		MARKER_APP15: "APP15",
+		MARKER_COM: "COM",
+		MARKER_CME: "CME",
+		MARKER_SIZ: "SIZ",
+
+		MARKER_DHT: "DHT",
+		MARKER_JPG: "JPG",
+		MARKER_DAC: "DAC",
+
+		MARKER_SOF0: "SOF0",
+		MARKER_SOF1: "SOF1",
+		MARKER_SOF2: "SOF2",
+		MARKER_SOF3: "SOF3",
+		MARKER_SOF5: "SOF5",
+		MARKER_SOF6: "SOF6",
+		MARKER_SOF7: "SOF7",
+		MARKER_SOF9: "SOF9",
+		MARKER_SOF10: "SOF10",
+		MARKER_SOF11: "SOF11",
+		MARKER_SOF13: "SOF13",
+		MARKER_SOF14: "SOF14",
+		MARKER_SOF15: "SOF15",
+	}
 )
 
-type JpegNavigator struct {
-	f *os.File
-	r *bufio.Reader
-}
-
-func NewJpegNavigator(filepath string) *JpegNavigator {
+func verifyIsJpeg(filepath string) (err error) {
 	defer func() {
 		if state := recover(); state != nil {
-			log.Panic(state.(error))
+			err = log.Wrap(state.(error))
 		}
 	}()
 
 	f, err := os.Open(filepath)
 	log.PanicIf(err)
+
+	defer f.Close()
 
 	buffer := make([]byte, 3)
 	n, err := f.Read(buffer)
@@ -113,140 +170,221 @@ func NewJpegNavigator(filepath string) *JpegNavigator {
 		log.Panicf("file does not look like a JPEG: (%X) (%X) (%X)", buffer[0], buffer[1], buffer[2])
 	}
 
-	r := bufio.NewReader(f)
-
-	jn := &JpegNavigator{
-		f: f,
-		r: r,
-	}
-
-	// Seek to first segment.
-
-	err = jn.SeekToNextSegment()
-	log.PanicIf(err)
-
-	return jn
+	return nil
 }
 
-func (jp *JpegNavigator) Close() {
-	defer func() {
-		if state := recover(); state != nil {
-			log.Panic(state.(error))
-		}
-	}()
-
-	jp.f.Close()
+type JpegSplitter struct {
+	lastMarkerId byte
+	lastMarkerName string
+	counter int
+	isScanData bool
 }
 
-type SegmentVisitorCb func(markerId byte) (continue_ bool, err error)
+func NewJpegSplitter() *JpegSplitter {
+	return new(JpegSplitter)
+}
 
-func (jn *JpegNavigator) VisitSegments(cb SegmentVisitorCb) (err error) {
+func (js *JpegSplitter) MarkerId() byte {
+	return js.lastMarkerId
+}
+
+func (js *JpegSplitter) MarkerName() string {
+	return js.lastMarkerName
+}
+
+func (js *JpegSplitter) Counter() int {
+	return js.counter
+}
+
+func (js *JpegSplitter) IsScanData() bool {
+	return js.isScanData
+}
+
+func (js *JpegSplitter) parseSof(data []byte) (err error) {
 	defer func() {
 		if state := recover(); state != nil {
 			err = log.Wrap(state.(error))
 		}
 	}()
 
-	for {
-		si, err := jn.ReadSegment()
-		log.PanicIf(err)
+	// bitsPerSample, err := si.Data.ReadByte()
+	// log.PanicIf(err)
 
-		continue_, err := cb(si.MarkerId)
-		log.PanicIf(err)
+	// height := uint16(0)
+	// err = binary.Read(si.Data, binary.BigEndian, &height)
+	// log.PanicIf(err)
 
-		if continue_ == false {
-			break
+	// width := uint16(0)
+	// err = binary.Read(si.Data, binary.BigEndian, &width)
+	// log.PanicIf(err)
+
+	// componentCount, err := si.Data.ReadByte()
+	// log.PanicIf(err)
+
+	// fmt.Printf("bits-per-sample: %v\n", bitsPerSample)
+	// fmt.Printf("height: %v\n", height)
+	// fmt.Printf("width: %v\n", width)
+	// fmt.Printf("componentCount: %v\n", componentCount)
+	// fmt.Printf("\n")
+
+	return nil
+}
+
+func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
 		}
+	}()
 
-		err = jn.SeekToNextSegment()
-		if err != nil {
-			if log.Is(err, io.EOF) == true {
+// TODO(dustin): !! Make sure that the first marker match the magic-bytes.
+// TODO(dustin): !! We're assuming that ignore atEOF and returning (0, nil, nil) when we need more data and there isn't any will raise an io.EOF (thereby delegating a redundant check to our caller). We might want to specifically run an example for this scenario.
+
+	dataLength := len(data)
+
+	jpegLogger.Debugf(nil, "SPLIT: LEN=(%d) COUNTER=(%d)", dataLength, js.counter)
+
+	// If the last segment was the SOS, we're currently siting on scan data.
+	// Search for the EOI marker aferward in order to know how much data there
+	// is. Return this as its own token.
+	if js.lastMarkerId == MARKER_SOS {
+		// The last segment was the last before scan data. Skip over the scan
+		// data by looking for the following EOI marker.
+
+		found := false
+		i := 0
+		for ; i < dataLength - 1; i++ {
+			if data[i] == 0xff && data[i + 1] == MARKER_EOI {
+				found = true
 				break
 			}
-
-			log.Panic(err)
 		}
+
+		if found == false {
+			return 0, nil, nil
+		}
+
+		// Jump past the current 0xff and marker bytes.
+		// i += 2
+
+		js.isScanData = true
+		js.lastMarkerId = 0
+		js.lastMarkerName = ""
+
+		// Note that we don't increment the counter since this isn't an actual
+		// segment.
+
+		jpegLogger.Debugf(nil, "End of scan-data.")
+
+		return i, data[:i], nil
+	} else {
+		js.isScanData = false
 	}
 
-	return nil
-}
+	// If we're here, we're supposed to be sitting on the 0xff bytes at the
+	// beginning of a segment (just before the marker).
 
-func (jn *JpegNavigator) SeekToNextSegment() (err error) {
-	defer func() {
-		if state := recover(); state != nil {
-			err = log.Wrap(state.(error))
-		}
-	}()
+	if data[0] != 0xff {
+		log.Panicf("not on new segment marker: (%02X)", data[0])
+	}
 
-	// Find boundary of next marker.
-	_, err = jn.r.ReadBytes(0xff)
-	log.PanicIf(err)
+	i := 0
+	found := false
+	for ; i < dataLength; i++ {
+		jpegLogger.Debugf(nil, "Prefix check: (%d) %02X", i, data[i])
 
-	// Seek past additional padding.
-
-	for {
-		b, err := jn.r.ReadByte()
-		log.PanicIf(err)
-
-		if b != 0xff {
-			err = jn.r.UnreadByte()
-			log.PanicIf(err)
-
+		if data[i] != 0xff {
+			found = true
 			break
 		}
 	}
 
-	return nil
-}
+	jpegLogger.Debugf(nil, "Skipped by leading 0xFF bytes: (%d)", i)
 
-type SegmentInfo struct {
-	MarkerId   byte
-	DataLength uint32
-}
+	if found == false || i >= dataLength {
+		jpegLogger.Debugf(nil, "Not enough (1)")
 
-func (jn *JpegNavigator) ReadSegment() (si *SegmentInfo, err error) {
-	defer func() {
-		if state := recover(); state != nil {
-			err = log.Wrap(state.(error))
-		}
-	}()
-
-	markerId, err := jn.r.ReadByte()
-
-	si = &SegmentInfo{
-		MarkerId: markerId,
+		return 0, nil, nil
 	}
 
-	if len_, found := markerLen[markerId]; found == false {
+	markerId := data[i]
+	jpegLogger.Debugf(nil, "MARKER-ID=%x", markerId)
+
+	js.lastMarkerName = markerNames[markerId]
+
+	sizeLen, found := markerLen[markerId]
+	jpegLogger.Debugf(nil, "MARKER-ID=%x SIZELEN=%v FOUND=%v", markerId, sizeLen, found)
+
+	i++
+
+	b := bytes.NewBuffer(data[i:])
+	payloadLength := 0
+
+	if found == false {
 		// It's not one of the static-length markers. Read the length.
 		//
 		// The length is an unsigned 16-bit network/big-endian.
 
+		if i + 2 >= dataLength {
+			jpegLogger.Debugf(nil, "Not enough (2)")
+			return 0, nil, nil
+		}
+
 		len_ := uint16(0)
-		err = binary.Read(jn.r, binary.BigEndian, &len_)
+		err = binary.Read(b, binary.BigEndian, &len_)
 		log.PanicIf(err)
 
-		si.DataLength = uint32(len_)
+		if len_ <= 2 {
+			log.Panicf("length of size read for non-special marker (%02x) is unexpectedly not more than two.", markerId)
+		}
 
-		// Includes the bytes of the length itself.
-		len_ -= 2
-	} else if len_ > 0 {
+		// (len_ includes the bytes of the length itself.)
+		payloadLength = int(len_) - 2
+		jpegLogger.Debugf(nil, "DataLength (dynamically-sized segment): (%d)", payloadLength)
+
+		i += 2
+	} else if sizeLen > 0 {
 		// Accomodates the non-zero markers in our marker index, which only
 		// represent J2C extensions.
 		//
 		// The length is an unsigned 32-bit network/big-endian.
 
-		buffer := make([]byte, len_)
-		n, err := jn.r.Read(buffer)
-		log.PanicIf(err)
-
-		if n != len_ {
-			log.Panicf("ran out of data for J2C segment")
+		if sizeLen != 4 {
+			log.Panicf("known non-zero marker is not four bytes, which is not currently handled: M=(%x)", markerId)
 		}
 
-		// TODO(dustin): We're just assuming that no length is greater than 4 (which is the current case).
-		si.DataLength = uint32(len_)
+		if i + 4 >= dataLength {
+			jpegLogger.Debugf(nil, "Not enough (3)")
+			return 0, nil, nil
+		}
+
+		len_ := uint32(0)
+		err = binary.Read(b, binary.BigEndian, &len_)
+		log.PanicIf(err)
+
+		payloadLength = int(len_) - 4
+		jpegLogger.Debugf(nil, "DataLength (four-byte-length segment): (%u)", len_)
+
+		i += 4
 	}
 
-	return si, nil
+	jpegLogger.Debugf(nil, "PAYLOAD-LENGTH: %d", payloadLength)
+
+	// payload := data[i:]
+
+	i += int(payloadLength)
+
+	if i >= dataLength {
+		jpegLogger.Debugf(nil, "Not enough (4)")
+		return 0, nil, nil
+	}
+
+	jpegLogger.Debugf(nil, "Found whole segment.")
+
+	js.lastMarkerId = markerId
+	js.counter++
+
+	jpegLogger.Debugf(nil, "Returning advance of (%d)", i)
+
+	return i, data[:i], nil
 }
