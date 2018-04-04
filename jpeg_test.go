@@ -1,11 +1,12 @@
 package exifjpeg
 
 import (
-	"fmt"
 	"os"
 	"path"
 	"testing"
 	"bufio"
+	"bytes"
+	"reflect"
 
 	"github.com/dsoprea/go-logging"
 )
@@ -21,18 +22,31 @@ var (
 // 	defer jn.Close()
 // }
 
-type Visitor struct {
-
+type collectorVisitor struct {
+	markerList []byte
+	sofList []SofSegment
 }
 
-func (v *Visitor) HandleSegment(lastMarkerId byte, lastMarkerName string, counter int, lastIsScanData bool) (err error) {
+func (v *collectorVisitor) HandleSegment(lastMarkerId byte, lastMarkerName string, counter int, lastIsScanData bool) (err error) {
 	defer func() {
 		if state := recover(); state != nil {
 			err = log.Wrap(state.(error))
 		}
 	}()
 
-	fmt.Printf("VISIT (%02X)\n", lastMarkerId)
+	v.markerList = append(v.markerList, lastMarkerId)
+
+	return nil
+}
+
+func (v *collectorVisitor) HandleSof(sof *SofSegment) (err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+	v.sofList = append(v.sofList, *sof)
 
 	return nil
 }
@@ -48,7 +62,7 @@ func TestJpegSplitterSplit(t *testing.T) {
 
 	size := stat.Size()
 
-	v := new(Visitor)
+	v := new(collectorVisitor)
 	js := NewJpegSplitter(v)
 
 	s := bufio.NewScanner(f)
@@ -60,43 +74,36 @@ func TestJpegSplitterSplit(t *testing.T) {
 
 	s.Split(js.Split)
 
-	// more := s.Scan()
-	// if more != true || s.Err() != nil {
-	// 	t.Fatalf("more tokens expected (1): %v", s.Err())
-	// }
+	for ; s.Scan() != false; { }
 
-	// fmt.Printf("MARKER1: %02X\n", js.MarkerId())
-
-	// more = s.Scan()
-	// if more != true || s.Err() != nil {
-	// 	t.Fatalf("more tokens expected (2): %v", s.Err())
-	// }
-
-	// fmt.Printf("MARKER2: %02X\n", js.MarkerId())
-
-	// more = s.Scan()
-	// if more != true || s.Err() != nil {
-	// 	t.Fatalf("more tokens expected (3): %v", s.Err())
-	// }
-
-	// fmt.Printf("MARKER3: %02X\n", js.MarkerId())
-
-	// more = s.Scan()
-	// if more != true || s.Err() != nil {
-	// 	t.Fatalf("more tokens expected (4): %v", s.Err())
-	// }
-
-	// fmt.Printf("MARKER4: %02X\n", js.MarkerId())
-
-	for ; s.Scan() != false; {
-		fmt.Printf("Marker-ID: %02X\n", js.MarkerId())
+	if s.Err() != nil {
+		t.Fatalf("error while scanning: %v", s.Err())
 	}
 
-	fmt.Printf("Scan finished.\n")
+	expectedMarkers := []byte { 0xd8, 0xe1, 0xe1, 0xdb, 0xc0, 0xc4, 0xda, 0x00, 0xd9 }
 
-	log.PanicIf(s.Err())
+	if bytes.Compare(v.markerList, expectedMarkers) != 0 {
+		t.Fatalf("Markers found are not correct: %v\n", v.markerList)
+	}
 
-	fmt.Printf("No errors.\n")
+	expectedSofList := []SofSegment {
+		SofSegment{
+			BitsPerSample: 8,
+			Width: 3840,
+			Height: 2560,
+			ComponentCount: 3,
+		},
+		SofSegment{
+			BitsPerSample: 0,
+			Width: 1281,
+			Height: 1,
+			ComponentCount: 1,
+		},
+	}
+
+	if reflect.DeepEqual(v.sofList, expectedSofList) == false {
+		t.Fatalf("SOF segments not equal: %v\n", v.sofList)
+	}
 }
 
 func init() {

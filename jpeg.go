@@ -2,6 +2,8 @@ package exifjpeg
 
 import (
 	"bytes"
+	"bufio"
+	"fmt"
 
 	"encoding/binary"
 
@@ -146,6 +148,10 @@ type SofSegment struct {
 	ComponentCount byte
 }
 
+func (ss SofSegment) String() string {
+	return fmt.Sprintf("SOF<BitsPerSample=(%d) Width=(%d) Height=(%d) ComponentCount=(%d)>", ss.BitsPerSample, ss.Width, ss.Height, ss.ComponentCount)
+}
+
 type SegmentVisitor interface {
 	HandleSegment(markerId byte, markerName string, counter int, lastIsScanData bool) error
 }
@@ -191,28 +197,28 @@ func (js *JpegSplitter) parseSof(data []byte) (sof *SofSegment, err error) {
 		}
 	}()
 
-	// bitsPerSample, err := si.Data.ReadByte()
-	// log.PanicIf(err)
+	stream := bytes.NewBuffer(data)
+	buffer := bufio.NewReader(stream)
 
-	// height := uint16(0)
-	// err = binary.Read(si.Data, binary.BigEndian, &height)
-	// log.PanicIf(err)
+	bitsPerSample, err := buffer.ReadByte()
+	log.PanicIf(err)
 
-	// width := uint16(0)
-	// err = binary.Read(si.Data, binary.BigEndian, &width)
-	// log.PanicIf(err)
+	height := uint16(0)
+	err = binary.Read(buffer, binary.BigEndian, &height)
+	log.PanicIf(err)
 
-	// componentCount, err := si.Data.ReadByte()
-	// log.PanicIf(err)
+	width := uint16(0)
+	err = binary.Read(buffer, binary.BigEndian, &width)
+	log.PanicIf(err)
 
-	// fmt.Printf("bits-per-sample: %v\n", bitsPerSample)
-	// fmt.Printf("height: %v\n", height)
-	// fmt.Printf("width: %v\n", width)
-	// fmt.Printf("componentCount: %v\n", componentCount)
-	// fmt.Printf("\n")
+	componentCount, err := buffer.ReadByte()
+	log.PanicIf(err)
 
 	sof = &SofSegment{
-
+		BitsPerSample: bitsPerSample,
+		Width: width,
+		Height: height,
+		ComponentCount: componentCount,
 	}
 
 	return sof, nil
@@ -321,7 +327,6 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 
 	if found == false || i >= dataLength {
 		jpegLogger.Debugf(nil, "Not enough (3)")
-
 		return 0, nil, nil
 	}
 
@@ -392,7 +397,7 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 
 	i += int(payloadLength)
 
-	if i >= dataLength {
+	if i > dataLength {
 		jpegLogger.Debugf(nil, "Not enough (6)")
 		return 0, nil, nil
 	}
@@ -424,13 +429,15 @@ func (js *JpegSplitter) handleSegment(markerId byte, payload []byte) (err error)
 		log.PanicIf(err)
 	}
 
-	ssv, ok := js.visitor.(SofSegmentVisitor)
-	if ok == true {
-		sof, err := js.parseSof(payload)
-		log.PanicIf(err)
+	if markerId >= MARKER_SOF0 && markerId <= MARKER_SOF15 {
+		ssv, ok := js.visitor.(SofSegmentVisitor)
+		if ok == true {
+			sof, err := js.parseSof(payload)
+			log.PanicIf(err)
 
-		err = ssv.HandleSof(sof)
-		log.PanicIf(err)
+			err = ssv.HandleSof(sof)
+			log.PanicIf(err)
+		}
 	}
 
 	return nil
