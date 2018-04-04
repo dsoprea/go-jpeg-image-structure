@@ -1,7 +1,6 @@
 package exifjpeg
 
 import (
-	"os"
 	"bytes"
 
 	"encoding/binary"
@@ -141,47 +140,32 @@ var (
 	}
 )
 
-func verifyIsJpeg(filepath string) (err error) {
-	defer func() {
-		if state := recover(); state != nil {
-			err = log.Wrap(state.(error))
-		}
-	}()
+type SofSegment struct {
+	BitsPerSample byte
+	Width, Height uint16
+	ComponentCount byte
+}
 
-	f, err := os.Open(filepath)
-	log.PanicIf(err)
+type SegmentVisitor interface {
+	HandleSegment(markerId byte, markerName string, counter int, lastIsScanData bool) error
+}
 
-	defer f.Close()
-
-	buffer := make([]byte, 3)
-	n, err := f.Read(buffer)
-	log.PanicIf(err)
-
-	if n != 3 {
-		log.Panicf("file not long enough to identify as a JPEG")
-	}
-
-	if buffer[0] == jpegMagic2000[0] && buffer[1] == jpegMagic2000[1] && buffer[2] == jpegMagic2000[2] {
-		// TODO(dustin): Return to this.
-		log.Panicf("JPEG2000 not supported")
-	}
-
-	if buffer[0] != jpegMagicStandard[0] || buffer[1] != jpegMagicStandard[1] || buffer[2] != jpegMagicStandard[2] {
-		log.Panicf("file does not look like a JPEG: (%X) (%X) (%X)", buffer[0], buffer[1], buffer[2])
-	}
-
-	return nil
+type SofSegmentVisitor interface {
+	HandleSof(sof *SofSegment) error
 }
 
 type JpegSplitter struct {
 	lastMarkerId byte
 	lastMarkerName string
 	counter int
-	isScanData bool
+	lastIsScanData bool
+	visitor interface{}
 }
 
-func NewJpegSplitter() *JpegSplitter {
-	return new(JpegSplitter)
+func NewJpegSplitter(visitor interface{}) *JpegSplitter {
+	return &JpegSplitter{
+		visitor: visitor,
+	}
 }
 
 func (js *JpegSplitter) MarkerId() byte {
@@ -197,10 +181,10 @@ func (js *JpegSplitter) Counter() int {
 }
 
 func (js *JpegSplitter) IsScanData() bool {
-	return js.isScanData
+	return js.lastIsScanData
 }
 
-func (js *JpegSplitter) parseSof(data []byte) (err error) {
+func (js *JpegSplitter) parseSof(data []byte) (sof *SofSegment, err error) {
 	defer func() {
 		if state := recover(); state != nil {
 			err = log.Wrap(state.(error))
@@ -227,7 +211,46 @@ func (js *JpegSplitter) parseSof(data []byte) (err error) {
 	// fmt.Printf("componentCount: %v\n", componentCount)
 	// fmt.Printf("\n")
 
-	return nil
+	sof = &SofSegment{
+
+	}
+
+	return sof, nil
+}
+
+func (js *JpegSplitter) processScandata(data []byte) (advanceBytes int, err error) {
+	dataLength := len(data)
+
+	found := false
+	i := 0
+	for ; i < dataLength - 1; i++ {
+		if data[i] == 0xff && data[i + 1] == MARKER_EOI {
+			found = true
+			break
+		}
+	}
+
+	if found == false {
+		jpegLogger.Debugf(nil, "Not enough (2)")
+		return 0, nil
+	}
+
+	// Jump past the current 0xff and marker bytes.
+	// i += 2
+
+	js.lastIsScanData = true
+	js.lastMarkerId = 0
+	js.lastMarkerName = ""
+
+	// Note that we don't increment the counter since this isn't an actual
+	// segment.
+
+	jpegLogger.Debugf(nil, "End of scan-data.")
+
+	err = js.handleSegment(00, nil)
+	log.PanicIf(err)
+
+	return i, nil
 }
 
 func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byte, err error) {
@@ -237,48 +260,43 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 		}
 	}()
 
-// TODO(dustin): !! Make sure that the first marker match the magic-bytes.
+	if js.counter == 0 {
+		// Verify magic bytes.
+
+		if len(data) < 3 {
+			jpegLogger.Debugf(nil, "Not enough (1)")
+			return 0, nil, nil
+		}
+
+		if data[0] == jpegMagic2000[0] && data[1] == jpegMagic2000[1] && data[2] == jpegMagic2000[2] {
+			// TODO(dustin): Return to JPEG2000 support.
+			log.Panicf("JPEG2000 not supported")
+		}
+
+		if data[0] != jpegMagicStandard[0] || data[1] != jpegMagicStandard[1] || data[2] != jpegMagicStandard[2] {
+			log.Panicf("file does not look like a JPEG: (%X) (%X) (%X)", data[0], data[1], data[2])
+		}
+	}
+
 // TODO(dustin): !! We're assuming that ignore atEOF and returning (0, nil, nil) when we need more data and there isn't any will raise an io.EOF (thereby delegating a redundant check to our caller). We might want to specifically run an example for this scenario.
 
 	dataLength := len(data)
 
 	jpegLogger.Debugf(nil, "SPLIT: LEN=(%d) COUNTER=(%d)", dataLength, js.counter)
 
-	// If the last segment was the SOS, we're currently siting on scan data.
+	// If the last segment was the SOS, we're currently sitting on scan data.
 	// Search for the EOI marker aferward in order to know how much data there
 	// is. Return this as its own token.
 	if js.lastMarkerId == MARKER_SOS {
-		// The last segment was the last before scan data. Skip over the scan
-		// data by looking for the following EOI marker.
+		advanceBytes, err := js.processScandata(data)
+		log.PanicIf(err)
 
-		found := false
-		i := 0
-		for ; i < dataLength - 1; i++ {
-			if data[i] == 0xff && data[i + 1] == MARKER_EOI {
-				found = true
-				break
-			}
-		}
-
-		if found == false {
-			return 0, nil, nil
-		}
-
-		// Jump past the current 0xff and marker bytes.
-		// i += 2
-
-		js.isScanData = true
-		js.lastMarkerId = 0
-		js.lastMarkerName = ""
-
-		// Note that we don't increment the counter since this isn't an actual
-		// segment.
-
-		jpegLogger.Debugf(nil, "End of scan-data.")
-
-		return i, data[:i], nil
+		// This will either return 0 and implicitly request that we need more
+		// data and then need to run again or will return an actual byte count
+		// to progress by.
+		return advanceBytes, nil, nil
 	} else {
-		js.isScanData = false
+		js.lastIsScanData = false
 	}
 
 	// If we're here, we're supposed to be sitting on the 0xff bytes at the
@@ -302,7 +320,7 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 	jpegLogger.Debugf(nil, "Skipped by leading 0xFF bytes: (%d)", i)
 
 	if found == false || i >= dataLength {
-		jpegLogger.Debugf(nil, "Not enough (1)")
+		jpegLogger.Debugf(nil, "Not enough (3)")
 
 		return 0, nil, nil
 	}
@@ -326,7 +344,7 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 		// The length is an unsigned 16-bit network/big-endian.
 
 		if i + 2 >= dataLength {
-			jpegLogger.Debugf(nil, "Not enough (2)")
+			jpegLogger.Debugf(nil, "Not enough (4)")
 			return 0, nil, nil
 		}
 
@@ -354,7 +372,7 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 		}
 
 		if i + 4 >= dataLength {
-			jpegLogger.Debugf(nil, "Not enough (3)")
+			jpegLogger.Debugf(nil, "Not enough (5)")
 			return 0, nil, nil
 		}
 
@@ -370,21 +388,50 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 
 	jpegLogger.Debugf(nil, "PAYLOAD-LENGTH: %d", payloadLength)
 
-	// payload := data[i:]
+	payload := data[i:]
 
 	i += int(payloadLength)
 
 	if i >= dataLength {
-		jpegLogger.Debugf(nil, "Not enough (4)")
+		jpegLogger.Debugf(nil, "Not enough (6)")
 		return 0, nil, nil
 	}
 
 	jpegLogger.Debugf(nil, "Found whole segment.")
 
 	js.lastMarkerId = markerId
+
+	err = js.handleSegment(markerId, payload)
+	log.PanicIf(err)
+
 	js.counter++
 
 	jpegLogger.Debugf(nil, "Returning advance of (%d)", i)
 
-	return i, data[:i], nil
+	return i, nil, nil
+}
+
+func (js *JpegSplitter) handleSegment(markerId byte, payload []byte) (err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+	sv, ok := js.visitor.(SegmentVisitor)
+	if ok == true {
+		err = sv.HandleSegment(js.lastMarkerId, js.lastMarkerName, js.counter, js.lastIsScanData)
+		log.PanicIf(err)
+	}
+
+	ssv, ok := js.visitor.(SofSegmentVisitor)
+	if ok == true {
+		sof, err := js.parseSof(payload)
+		log.PanicIf(err)
+
+		err = ssv.HandleSof(sof)
+		log.PanicIf(err)
+	}
+
+	return nil
 }

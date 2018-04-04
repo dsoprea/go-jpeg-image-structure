@@ -21,6 +21,22 @@ var (
 // 	defer jn.Close()
 // }
 
+type Visitor struct {
+
+}
+
+func (v *Visitor) HandleSegment(lastMarkerId byte, lastMarkerName string, counter int, lastIsScanData bool) (err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+	fmt.Printf("VISIT (%02X)\n", lastMarkerId)
+
+	return nil
+}
+
 func TestJpegSplitterSplit(t *testing.T) {
 
 	filepath := path.Join(assetsPath, testImageRelFilepath)
@@ -32,7 +48,8 @@ func TestJpegSplitterSplit(t *testing.T) {
 
 	size := stat.Size()
 
-	js := NewJpegSplitter()
+	v := new(Visitor)
+	js := NewJpegSplitter(v)
 
 	s := bufio.NewScanner(f)
 
