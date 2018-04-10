@@ -190,41 +190,13 @@ func (js *JpegSplitter) IsScanData() bool {
 	return js.lastIsScanData
 }
 
-func (js *JpegSplitter) parseSof(data []byte) (sof *SofSegment, err error) {
+func (js *JpegSplitter) processScanData(data []byte) (advanceBytes int, err error) {
 	defer func() {
 		if state := recover(); state != nil {
 			err = log.Wrap(state.(error))
 		}
 	}()
 
-	stream := bytes.NewBuffer(data)
-	buffer := bufio.NewReader(stream)
-
-	bitsPerSample, err := buffer.ReadByte()
-	log.PanicIf(err)
-
-	height := uint16(0)
-	err = binary.Read(buffer, binary.BigEndian, &height)
-	log.PanicIf(err)
-
-	width := uint16(0)
-	err = binary.Read(buffer, binary.BigEndian, &width)
-	log.PanicIf(err)
-
-	componentCount, err := buffer.ReadByte()
-	log.PanicIf(err)
-
-	sof = &SofSegment{
-		BitsPerSample: bitsPerSample,
-		Width: width,
-		Height: height,
-		ComponentCount: componentCount,
-	}
-
-	return sof, nil
-}
-
-func (js *JpegSplitter) processScandata(data []byte) (advanceBytes int, err error) {
 	dataLength := len(data)
 
 	found := false
@@ -293,8 +265,10 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 	// If the last segment was the SOS, we're currently sitting on scan data.
 	// Search for the EOI marker aferward in order to know how much data there
 	// is. Return this as its own token.
+	//
+	// REF: https://stackoverflow.com/questions/26715684/parsing-jpeg-sos-marker
 	if js.lastMarkerId == MARKER_SOS {
-		advanceBytes, err := js.processScandata(data)
+		advanceBytes, err := js.processScanData(data)
 		log.PanicIf(err)
 
 		// This will either return 0 and implicitly request that we need more
@@ -395,6 +369,10 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 
 	payload := data[i:]
 
+	if payloadLength < 0 {
+		log.Panicf("payload length less than zero: (%d)", payloadLength)
+	}
+
 	i += int(payloadLength)
 
 	if i > dataLength {
@@ -406,7 +384,8 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 
 	js.lastMarkerId = markerId
 
-	err = js.handleSegment(markerId, payload)
+	payloadWindow := payload[:payloadLength]
+	err = js.handleSegment(markerId, payloadWindow)
 	log.PanicIf(err)
 
 	js.counter++
@@ -414,6 +393,80 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 	jpegLogger.Debugf(nil, "Returning advance of (%d)", i)
 
 	return i, nil, nil
+}
+
+func (js *JpegSplitter) parseSof(data []byte) (sof *SofSegment, err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+	stream := bytes.NewBuffer(data)
+	buffer := bufio.NewReader(stream)
+
+	bitsPerSample, err := buffer.ReadByte()
+	log.PanicIf(err)
+
+	height := uint16(0)
+	err = binary.Read(buffer, binary.BigEndian, &height)
+	log.PanicIf(err)
+
+	width := uint16(0)
+	err = binary.Read(buffer, binary.BigEndian, &width)
+	log.PanicIf(err)
+
+	componentCount, err := buffer.ReadByte()
+	log.PanicIf(err)
+
+	sof = &SofSegment{
+		BitsPerSample: bitsPerSample,
+		Width: width,
+		Height: height,
+		ComponentCount: componentCount,
+	}
+
+	return sof, nil
+}
+
+func (js *JpegSplitter) isExif(data []byte) (ok bool) {
+	if bytes.Compare(data[:6], []byte("Exif\000\000")) == 0 {
+		return true
+	}
+
+	return false
+}
+
+func (js *JpegSplitter) parseAppData(markerId byte, data []byte) (err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+	if js.isExif(data) == true {
+		byteOrderSignature := data[6:8]
+		byteOrder := IfdByteOrder(BigEndianByteOrder)
+		if string(byteOrderSignature) == "II" {
+			byteOrder = IfdByteOrder(LittleEndianByteOrder)
+		} else if string(byteOrderSignature) != "MM" {
+			log.Panicf("byte-order not recognized: [%v]", byteOrderSignature)
+		}
+
+		ifd := NewIfd(data, byteOrder)
+
+		visitor := func() error {
+// TODO(dustin): !! Debugging.
+
+			fmt.Printf("IFD visitor.\n")
+			return nil
+		}
+
+		err := ifd.Scan(visitor)
+		log.PanicIf(err)
+	}
+
+	return nil
 }
 
 func (js *JpegSplitter) handleSegment(markerId byte, payload []byte) (err error) {
@@ -438,6 +491,9 @@ func (js *JpegSplitter) handleSegment(markerId byte, payload []byte) (err error)
 			err = ssv.HandleSof(sof)
 			log.PanicIf(err)
 		}
+	} else if markerId >= MARKER_APP0 && markerId <= MARKER_APP15 {
+		err := js.parseAppData(markerId, payload)
+		log.PanicIf(err)
 	}
 
 	return nil

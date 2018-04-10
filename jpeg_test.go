@@ -106,6 +106,22 @@ func TestJpegSplitterSplit(t *testing.T) {
 	}
 }
 
+func TestIsExif_True(t *testing.T) {
+	js := NewJpegSplitter(nil)
+
+	if ok := js.isExif([]byte("Exif\000\000")); ok != true {
+		t.Fatalf("expected true")
+	}
+}
+
+func TestIsExif_False(t *testing.T) {
+	js := NewJpegSplitter(nil)
+
+	if ok := js.isExif([]byte("something unexpected")); ok != false {
+		t.Fatalf("expected false")
+	}
+}
+
 func init() {
 	goPath := os.Getenv("GOPATH")
 	if goPath == "" {
