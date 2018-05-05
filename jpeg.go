@@ -8,10 +8,10 @@ import (
 	"encoding/binary"
 
 	"github.com/dsoprea/go-logging"
-	"github.com/dsoprea/go-exif"
 )
 
 const (
+	MARKER_SOI   = 0xd8
 	MARKER_EOI   = 0xd9
 	MARKER_SOS   = 0xda
 	MARKER_SOD   = 0x93
@@ -55,7 +55,7 @@ const (
 
 var (
 	jpegLogger        = log.NewLogger("exifjpeg.jpeg")
-	jpegMagicStandard = []byte{0xff, 0xd8, 0xff}
+	jpegMagicStandard = []byte{0xff, MARKER_SOI, 0xff}
 	jpegMagic2000     = []byte{0xff, 0x4f, 0xff}
 
 	markerLen = map[byte]int{
@@ -101,6 +101,7 @@ var (
 	}
 
 	markerNames = map[byte]string {
+		MARKER_SOI: "SOI",
 		MARKER_EOI: "EOI",
 		MARKER_SOS: "SOS",
 		MARKER_SOD: "SOD",
@@ -157,8 +158,69 @@ type SegmentVisitor interface {
 	HandleSegment(markerId byte, markerName string, counter int, lastIsScanData bool) error
 }
 
+
 type SofSegmentVisitor interface {
 	HandleSof(sof *SofSegment) error
+}
+
+
+type Segment struct {
+	MarkerId byte
+	Offset int
+	Data []byte
+}
+
+type SegmentList []Segment
+
+func (sl SegmentList) Print() {
+	if len(sl) == 0 {
+		fmt.Printf("No segments.\n")
+	} else {
+		for i, s := range sl {
+			fmt.Printf("% 2d: ID=(0x%02x) OFFSET=(0x%08x %d)\n", i, s.MarkerId, s.Offset, s.Offset)
+		}
+	}
+}
+
+// Validate checks that all of the markers are actually located at all of the
+// recorded offsets.
+func (sl SegmentList) Validate(data []byte) (err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+	if len(sl) < 2 {
+		log.Panicf("minimum segments not found")
+	}
+
+	if sl[0].MarkerId != MARKER_SOI {
+		log.Panicf("first segment not SOI")
+	} else if sl[len(sl) - 1].MarkerId != MARKER_EOI {
+		log.Panicf("last segment not EOI")
+	}
+
+    lastOffset := 0
+    for i, s := range sl {
+        if lastOffset != 0 && s.Offset <= lastOffset {
+            log.Panicf("segment offset not greater than the last: SEGMENT=(%d) (0x%08x) <= (0x%08x)", i, s.Offset, lastOffset)
+        }
+
+        // The scan-data doesn't start with a marker.
+        if s.MarkerId == 0x0 {
+            continue
+        }
+
+        o := s.Offset
+        if bytes.Compare(data[o:o+2], []byte { 0xff, s.MarkerId }) != 0 {
+            log.Panicf("segment offset does not point to the start of a segment: SEGMENT=(%d) (0x%08x)", i, s.Offset)
+        }
+
+        lastOffset = o
+    }
+
+    return nil
 }
 
 type JpegSplitter struct {
@@ -167,12 +229,19 @@ type JpegSplitter struct {
 	counter int
 	lastIsScanData bool
 	visitor interface{}
+
+	currentOffset int
+	segments SegmentList
 }
 
 func NewJpegSplitter(visitor interface{}) *JpegSplitter {
 	return &JpegSplitter{
 		visitor: visitor,
 	}
+}
+
+func (js *JpegSplitter) Segments() SegmentList {
+	return js.segments
 }
 
 func (js *JpegSplitter) MarkerId() byte {
@@ -203,6 +272,8 @@ func (js *JpegSplitter) processScanData(data []byte) (advanceBytes int, err erro
 	found := false
 	i := 0
 	for ; i < dataLength - 1; i++ {
+		// We read until we hit the EOI marker, which always follows (we're not
+		// processing the EOI here, however).
 		if data[i] == 0xff && data[i + 1] == MARKER_EOI {
 			found = true
 			break
@@ -226,7 +297,7 @@ func (js *JpegSplitter) processScanData(data []byte) (advanceBytes int, err erro
 
 	jpegLogger.Debugf(nil, "End of scan-data.")
 
-	err = js.handleSegment(00, nil)
+	err = js.handleSegment(0x0, 0x0, data[:i])
 	log.PanicIf(err)
 
 	return i, nil
@@ -257,7 +328,7 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 		}
 	}
 
-// TODO(dustin): !! We're assuming that ignore atEOF and returning (0, nil, nil) when we need more data and there isn't any will raise an io.EOF (thereby delegating a redundant check to our caller). We might want to specifically run an example for this scenario.
+// TODO(dustin): !! We're assuming that ignoring atEOF and returning (0, nil, nil) when we need more data and there isn't any will raise an io.EOF (thereby delegating a redundant check to our caller). We might want to specifically run an example for this scenario.
 
 	dataLength := len(data)
 
@@ -318,10 +389,16 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 	b := bytes.NewBuffer(data[i:])
 	payloadLength := 0
 
+	// marker-ID + size => 2 + <dynamic>
+	headerSize := 2 + sizeLen
+
 	if found == false {
 		// It's not one of the static-length markers. Read the length.
 		//
 		// The length is an unsigned 16-bit network/big-endian.
+
+		// marker-ID + size => 2 + 2
+		headerSize = 2 + 2
 
 		if i + 2 >= dataLength {
 			jpegLogger.Debugf(nil, "Not enough (4)")
@@ -386,7 +463,7 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 	js.lastMarkerId = markerId
 
 	payloadWindow := payload[:payloadLength]
-	err = js.handleSegment(markerId, payloadWindow)
+	err = js.handleSegment(markerId, headerSize, payloadWindow)
 	log.PanicIf(err)
 
 	js.counter++
@@ -437,22 +514,24 @@ func (js *JpegSplitter) parseAppData(markerId byte, data []byte) (err error) {
 		}
 	}()
 
-	e := exif.NewExif()
-	err = e.Parse(data)
-
-	if err == nil || log.Is(err, exif.ErrNotExif) {
-		return nil
-	}
-
 	return nil
 }
 
-func (js *JpegSplitter) handleSegment(markerId byte, payload []byte) (err error) {
+func (js *JpegSplitter) handleSegment(markerId byte, headerSize int, payload []byte) (err error) {
 	defer func() {
 		if state := recover(); state != nil {
 			err = log.Wrap(state.(error))
 		}
 	}()
+
+	s := Segment{
+		MarkerId: markerId,
+		Offset: js.currentOffset,
+		Data: payload,
+	}
+
+	js.currentOffset += headerSize + len(payload)
+	js.segments = append(js.segments, s)
 
 	sv, ok := js.visitor.(SegmentVisitor)
 	if ok == true {
