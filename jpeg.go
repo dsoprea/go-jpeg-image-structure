@@ -1,4 +1,4 @@
-package exifjpeg
+package jpegstructure
 
 import (
 	"bytes"
@@ -166,6 +166,7 @@ type SofSegmentVisitor interface {
 
 type Segment struct {
 	MarkerId byte
+	MarkerName string
 	Offset int
 	Data []byte
 }
@@ -297,7 +298,7 @@ func (js *JpegSplitter) processScanData(data []byte) (advanceBytes int, err erro
 
 	jpegLogger.Debugf(nil, "End of scan-data.")
 
-	err = js.handleSegment(0x0, 0x0, data[:i])
+	err = js.handleSegment(0x0, "!SCANDATA", 0x0, data[:i])
 	log.PanicIf(err)
 
 	return i, nil
@@ -463,7 +464,7 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 	js.lastMarkerId = markerId
 
 	payloadWindow := payload[:payloadLength]
-	err = js.handleSegment(markerId, headerSize, payloadWindow)
+	err = js.handleSegment(markerId, js.lastMarkerName, headerSize, payloadWindow)
 	log.PanicIf(err)
 
 	js.counter++
@@ -517,17 +518,21 @@ func (js *JpegSplitter) parseAppData(markerId byte, data []byte) (err error) {
 	return nil
 }
 
-func (js *JpegSplitter) handleSegment(markerId byte, headerSize int, payload []byte) (err error) {
+func (js *JpegSplitter) handleSegment(markerId byte, markerName string, headerSize int, payload []byte) (err error) {
 	defer func() {
 		if state := recover(); state != nil {
 			err = log.Wrap(state.(error))
 		}
 	}()
 
+	cloned := make([]byte, len(payload))
+	copy(cloned, payload)
+
 	s := Segment{
 		MarkerId: markerId,
+		MarkerName: markerName,
 		Offset: js.currentOffset,
-		Data: payload,
+		Data: cloned,
 	}
 
 	js.currentOffset += headerSize + len(payload)

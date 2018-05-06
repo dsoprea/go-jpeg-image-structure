@@ -1,4 +1,4 @@
-package exifjpeg
+package jpegstructure
 
 import (
     "os"

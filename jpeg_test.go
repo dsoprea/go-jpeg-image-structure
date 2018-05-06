@@ -1,4 +1,4 @@
-package exifjpeg
+package jpegstructure
 
 import (
 	"os"
@@ -107,48 +107,7 @@ func Test_JpegSplitter_Split(t *testing.T) {
 	if reflect.DeepEqual(v.sofList, expectedSofList) == false {
 		t.Fatalf("SOF segments not equal: %v\n", v.sofList)
 	}
-
-	// js.Segments().Dump()
 }
-
-// func Test_JpegSplitter__Segments(*testing.T) {
-//     defer func() {
-//         if state := recover(); state != nil {
-//             err := log.Wrap(state.(error))
-//             log.PrintErrorf(err, "Test failure.")
-//         }
-//     }()
-
-// 	filepath := path.Join(assetsPath, testImageRelFilepath)
-// 	f, err := os.Open(filepath)
-// 	log.PanicIf(err)
-
-// 	stat, err := f.Stat()
-// 	log.PanicIf(err)
-
-// 	size := stat.Size()
-
-// 	v := new(collectorVisitor)
-// 	js := NewJpegSplitter(v)
-
-// 	s := bufio.NewScanner(f)
-
-// 	// Since each segment can be any size, our buffer must allowed to grow as
-// 	// large as the file.
-// 	buffer := []byte {}
-// 	s.Buffer(buffer, int(size))
-
-// 	s.Split(js.Split)
-
-// 	for ; s.Scan() != false; { }
-
-// 	if s.Err() != nil {
-// 		log.PrintError(s.Err())
-// 		t.Fatalf("error while scanning: %v", s.Err())
-// 	}
-
-// 	js.Segments().Dump()
-// }
 
 func init() {
 	goPath := os.Getenv("GOPATH")
@@ -156,5 +115,5 @@ func init() {
 		log.Panicf("GOPATH is empty")
 	}
 
-	assetsPath = path.Join(goPath, "src", "github.com", "dsoprea", "go-exif-parser-jpeg", "assets")
+	assetsPath = path.Join(goPath, "src", "github.com", "dsoprea", "go-jpeg-structure", "assets")
 }

@@ -1,10 +1,11 @@
-package exifjpeg
+package jpegstructure
 
 import (
     "fmt"
     "bytes"
 
     "github.com/dsoprea/go-logging"
+    "github.com/dsoprea/go-exif"
 )
 
 func DumpBytes(data []byte) {
@@ -62,4 +63,76 @@ func DumpBytesClauseToString(data []byte) string {
     }
 
     return b.String()
+}
+
+
+type ExifTag struct {
+    ParentIfdName string `json:"parent_ifd_name"`
+    IfdName string `json:"ifd_name"`
+
+    TagId uint16 `json:"id"`
+    TagName string `json:"name"`
+
+    TagTypeId uint16 `json:"type_id"`
+    TagTypeName string `json:"type_name"`
+    Value interface{} `json:"value"`
+
+    ChildIfdName string `json:"child_ifd_name"`
+}
+
+func GetExifData(exifData []byte) (exifTags []ExifTag, err error) {
+    defer func() {
+        if state := recover(); state != nil {
+            err = log.Wrap(state.(error))
+        }
+    }()
+
+    e := exif.NewExif()
+
+    _, index, err := e.Collect(exifData)
+    log.PanicIf(err)
+
+    q := make([]*exif.Ifd, 1)
+    q[0] = index.RootIfd
+
+    exifTags = make([]ExifTag, 0)
+
+    for ; len(q) > 0; {
+        var ifd *exif.Ifd
+        ifd, q = q[0], q[1:]
+
+        parentIfdName := ""
+        if ifd.ParentIfd != nil {
+            parentIfdName = ifd.ParentIfd.Identity().IfdName
+        }
+
+        ii := ifd.Identity()
+
+        ti := exif.NewTagIndex()
+        for _, ite := range ifd.Entries {
+            it, err := ti.Get(ii, ite.TagId)
+            log.PanicIf(err)
+
+            value, err := ifd.TagValue(ite)
+
+            et := ExifTag{
+                ParentIfdName: parentIfdName,
+                IfdName: ii.IfdName,
+                TagId: ite.TagId,
+                TagName: it.Name,
+                TagTypeId: ite.TagType,
+                TagTypeName: exif.TypeNames[ite.TagType],
+                Value: value,
+                ChildIfdName: ite.ChildIfdName,
+            }
+
+            exifTags = append(exifTags, et)
+        }
+
+        for _, childIfd := range ifd.Children {
+            q = append(q, childIfd)
+        }
+    }
+
+    return exifTags, nil
 }
