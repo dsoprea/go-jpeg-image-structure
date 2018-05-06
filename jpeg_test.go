@@ -115,5 +115,5 @@ func init() {
 		log.Panicf("GOPATH is empty")
 	}
 
-	assetsPath = path.Join(goPath, "src", "github.com", "dsoprea", "go-jpeg-structure", "assets")
+	assetsPath = path.Join(goPath, "src", "github.com", "dsoprea", "go-jpeg-image-structure", "assets")
 }
