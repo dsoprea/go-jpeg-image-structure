@@ -56,41 +56,20 @@ func main() {
     sl, err := jpegstructure.ParseBytesStructure(data)
     log.PanicIf(err)
 
-    var exifTags []jpegstructure.ExifTag
-    for _, s := range sl {
-        if s.MarkerId < jpegstructure.MARKER_APP0 || s.MarkerId > jpegstructure.MARKER_APP15 {
-            continue
-        }
-
-        var err error
-
-        exifTags, err = jpegstructure.GetExifData(s.Data)
-        if err != nil {
-            if log.Is(err, exif.ErrNotExif) == true {
-                continue
-            }
-
-            log.Panic(err)
-        }
-
-        break
-    }
-
-    if exifTags == nil {
-        log.Panicf("exif data not found")
-    }
+    _, et, err := sl.ParseExif()
+    log.PanicIf(err)
 
     if options.Json == true {
-        raw, err := json.MarshalIndent(exifTags, "  ", "  ")
+        raw, err := json.MarshalIndent(et, "  ", "  ")
         log.PanicIf(err)
 
         fmt.Println(string(raw))
     } else {
-        for i, et := range exifTags {
-            fmt.Printf("%2d: IFD=[%s] ID=(0x%02x) NAME=[%s] TYPE=(%d):[%s] VALUE=[%v]", i, et.IfdName, et.TagId, et.TagName, et.TagTypeId, et.TagTypeName, et.Value)
+        for i, tag := range et {
+            fmt.Printf("%2d: IFD=[%s] ID=(0x%02x) NAME=[%s] TYPE=(%d):[%s] VALUE=[%v]", i, tag.IfdName, tag.TagId, tag.TagName, tag.TagTypeId, tag.TagTypeName, tag.Value)
 
-            if et.ChildIfdName != "" {
-                fmt.Printf(" CHILD-IFD=[%s]", et.ChildIfdName)
+            if tag.ChildIfdName != "" {
+                fmt.Printf(" CHILD-IFD=[%s]", tag.ChildIfdName)
             }
 
             fmt.Printf("\n")

@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"bufio"
 	"fmt"
+	"errors"
 
 	"encoding/binary"
 
 	"github.com/dsoprea/go-logging"
+	"github.com/dsoprea/go-exif"
 )
 
 const (
@@ -144,6 +146,10 @@ var (
 	}
 )
 
+var (
+	ErrNoExif = errors.New("file does not have EXIF")
+)
+
 type SofSegment struct {
 	BitsPerSample byte
 	Width, Height uint16
@@ -222,6 +228,39 @@ func (sl SegmentList) Validate(data []byte) (err error) {
     }
 
     return nil
+}
+
+func (sl SegmentList) ParseExif() (segment Segment, exifTags []ExifTag, err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+    exifTags = make([]ExifTag, 0)
+    for _, s := range sl {
+        if s.MarkerId < MARKER_APP0 || s.MarkerId > MARKER_APP15 {
+            continue
+        }
+
+        var err error
+
+        exifTags, err := GetExifData(s.Data)
+        if err != nil {
+            if log.Is(err, exif.ErrNotExif) == true {
+                continue
+            }
+
+            log.Panic(err)
+        }
+
+	    return s, exifTags, nil
+    }
+
+    log.Panic(ErrNoExif)
+
+    // Never called.
+    return Segment{}, nil, nil
 }
 
 type JpegSplitter struct {
