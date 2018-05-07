@@ -7,8 +7,10 @@ import (
 	"bufio"
 	"bytes"
 	"reflect"
+	"fmt"
 
 	"github.com/dsoprea/go-logging"
+	"github.com/dsoprea/go-exif"
 )
 
 var (
@@ -107,6 +109,106 @@ func Test_JpegSplitter_Split(t *testing.T) {
 	if reflect.DeepEqual(v.sofList, expectedSofList) == false {
 		t.Fatalf("SOF segments not equal: %v\n", v.sofList)
 	}
+}
+
+func Test_SegmentList__Update_Exif(t *testing.T) {
+    defer func() {
+        if state := recover(); state != nil {
+            err := log.Wrap(state.(error))
+            log.PrintErrorf(err, "Test failure.")
+        }
+    }()
+
+    filepath := path.Join(assetsPath, testImageRelFilepath)
+
+// TODO(dustin): !! Also test writing EXIF created from-scratch.
+// TODO(dustin): !! Test adding a new EXIF (drop the existing).
+// TODO(dustin): !! Test (sl).SetExif .
+
+    sl, err := ParseFileStructure(filepath)
+    log.PanicIf(err)
+
+
+// TODO(dustin): !! Confirm tags before.
+	_, s, tags, err := sl.DumpExif()
+	log.PanicIf(err)
+
+	s = s
+
+	fmt.Printf("\n")
+	fmt.Printf("BEFORE:\n")
+	fmt.Printf("\n")
+
+	for i, tag := range tags {
+		fmt.Printf("%02d: %v\n", i, tag)
+	}
+
+	_, s, rootIb, err := sl.ConstructExifBuilder()
+	log.PanicIf(err)
+
+	// fmt.Printf("\n")
+	// fmt.Printf("IB:\n")
+	// fmt.Printf("\n")
+
+	// fmt.Printf("%v\n", rootIb)
+
+	i, err := rootIb.Find(exif.IfdExifId)
+	log.PanicIf(err)
+
+	exifBt := rootIb.Tags()[i]
+	exifIb := exifBt.Value().Ib()
+
+
+	uc := exif.TagUnknownType_9298_UserComment{
+	    EncodingType: exif.TagUnknownType_9298_UserComment_Encoding_ASCII,
+	    EncodingBytes: []byte("TEST EXIF CHANGE"),
+	}
+
+	err = exifIb.SetFromConfigWithName("UserComment", uc)
+	log.PanicIf(err)
+
+
+
+// TODO(dustin): !! Might want to test a reconstruction without actually modifying anything. This is also useful. Everything will still be reallocated and this will help us determine if we're having parsing/encoding problems versions problems with an individual tag's value.
+
+// TODO(dustin): !! The output doesn't have the thumbnail(s).
+
+// TODO(dustin): !! We think we're writing the original IFD *and* our updated IFD, one after the other. *Tee IFD1 data is totally different.*
+
+	fmt.Printf("\n")
+	fmt.Printf("IB TO WRITE:\n")
+	fmt.Printf("\n")
+
+	rootIb.Dump()
+
+
+	err = s.SetExif(rootIb)
+	log.PanicIf(err)
+
+
+// TODO(dustin): !! Confirm tags after.
+ 	_, s, tags, err = sl.DumpExif()
+ 	log.PanicIf(err)
+
+ 	s = s
+
+	fmt.Printf("\n")
+	fmt.Printf("AFTER:\n")
+	fmt.Printf("\n")
+
+	for i, tag := range tags {
+		fmt.Printf("%02d: %s\n", i, tag)
+	}
+
+// TODO(dustin): !! Use native/third-party EXIF support to test?
+
+	f, err := os.Create("/tmp/updated_exif.jpg")
+	log.PanicIf(err)
+
+	defer f.Close()
+
+	err = sl.Write(f)
+	log.PanicIf(err)
 }
 
 func init() {

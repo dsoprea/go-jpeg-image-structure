@@ -25,56 +25,54 @@ func TestParseSegments(t *testing.T) {
     sl, err := ParseSegments(f, int(size))
     log.PanicIf(err)
 
-    expected := []Segment {
-        Segment{
+    expected := []*Segment {
+        &Segment{
             MarkerId: 0xd8,
             Offset: 0x0,
         },
-        Segment{
+        &Segment{
             MarkerId: 0xe1,
             Offset: 0x2,
         },
-        Segment{
+        &Segment{
             MarkerId: 0xe1,
             Offset: 0x000080b4,
         },
-        Segment{
+        &Segment{
             MarkerId: 0xdb,
             Offset: 0x8ab6,
         },
-        Segment{
+        &Segment{
             MarkerId: 0xc0,
             Offset: 0x8b3c,
         },
-        Segment{
+        &Segment{
             MarkerId: 0xc4,
             Offset: 0x8b4f,
         },
-        Segment{
+        &Segment{
             MarkerId: 0xda,
             Offset: 0x8cf3,
         },
-        Segment{
+        &Segment{
             MarkerId: 0x0,
             Offset: 0x8cf5,
         },
-        Segment{
+        &Segment{
             MarkerId: 0xd9,
             Offset: 0x554d6d,
         },
     }
 
-    expectedSl := SegmentList(expected)
-
-    if len(sl) != len(expectedSl) {
-        t.Fatalf("Number of segments is unexpected: (%d) != (%d)", len(sl), len(expected))
+    if len(sl.segments) != len(expected) {
+        t.Fatalf("Number of segments is unexpected: (%d) != (%d)", len(sl.segments), len(expected))
     }
 
-    for i, s := range sl {
-        if s.MarkerId != expectedSl[i].MarkerId {
-            t.Fatalf("Segment (%d) marker-ID not correct: (0x%02x != 0x%02x)", i, s.MarkerId, expectedSl[i].MarkerId)
-        } else if s.Offset != expectedSl[i].Offset {
-            t.Fatalf("Segment (%d) offset not correct: (0x%08x != 0x%08x)", i, s.Offset, expectedSl[i].Offset)
+    for i, s := range sl.segments {
+        if s.MarkerId != expected[i].MarkerId {
+            t.Fatalf("Segment (%d) marker-ID not correct: (0x%02x != 0x%02x)", i, s.MarkerId, expected[i].MarkerId)
+        } else if s.Offset != expected[i].Offset {
+            t.Fatalf("Segment (%d) offset not correct: (0x%08x != 0x%08x)", i, s.Offset, expected[i].Offset)
         }
     }
 }
@@ -85,56 +83,54 @@ func TestParseFileStructure(t *testing.T) {
     sl, err := ParseFileStructure(filepath)
     log.PanicIf(err)
 
-    expected := []Segment {
-        Segment{
+    expected := []*Segment {
+        &Segment{
             MarkerId: 0xd8,
             Offset: 0x0,
         },
-        Segment{
+        &Segment{
             MarkerId: 0xe1,
             Offset: 0x2,
         },
-        Segment{
+        &Segment{
             MarkerId: 0xe1,
             Offset: 0x000080b4,
         },
-        Segment{
+        &Segment{
             MarkerId: 0xdb,
             Offset: 0x8ab6,
         },
-        Segment{
+        &Segment{
             MarkerId: 0xc0,
             Offset: 0x8b3c,
         },
-        Segment{
+        &Segment{
             MarkerId: 0xc4,
             Offset: 0x8b4f,
         },
-        Segment{
+        &Segment{
             MarkerId: 0xda,
             Offset: 0x8cf3,
         },
-        Segment{
+        &Segment{
             MarkerId: 0x0,
             Offset: 0x8cf5,
         },
-        Segment{
+        &Segment{
             MarkerId: 0xd9,
             Offset: 0x554d6d,
         },
     }
 
-    expectedSl := SegmentList(expected)
-
-    if len(sl) != len(expectedSl) {
-        t.Fatalf("Number of segments is unexpected: (%d) != (%d)", len(sl), len(expected))
+    if len(sl.segments) != len(expected) {
+        t.Fatalf("Number of segments is unexpected: (%d) != (%d)", len(sl.segments), len(expected))
     }
 
-    for i, s := range sl {
-        if s.MarkerId != expectedSl[i].MarkerId {
-            t.Fatalf("Segment (%d) marker-ID not correct: (0x%02x != 0x%02x)", i, s.MarkerId, expectedSl[i].MarkerId)
-        } else if s.Offset != expectedSl[i].Offset {
-            t.Fatalf("Segment (%d) offset not correct: (0x%08x != 0x%08x)", i, s.Offset, expectedSl[i].Offset)
+    for i, s := range sl.segments {
+        if s.MarkerId != expected[i].MarkerId {
+            t.Fatalf("Segment (%d) marker-ID not correct: (0x%02x != 0x%02x)", i, s.MarkerId, expected[i].MarkerId)
+        } else if s.Offset != expected[i].Offset {
+            t.Fatalf("Segment (%d) offset not correct: (0x%08x != 0x%08x)", i, s.Offset, expected[i].Offset)
         }
     }
 }
@@ -148,56 +144,54 @@ func TestParseBytesStructure(t *testing.T) {
     sl, err := ParseBytesStructure(data)
     log.PanicIf(err)
 
-    expected := []Segment {
-        Segment{
+    expected := []*Segment {
+        &Segment{
             MarkerId: 0xd8,
             Offset: 0x0,
         },
-        Segment{
+        &Segment{
             MarkerId: 0xe1,
             Offset: 0x2,
         },
-        Segment{
+        &Segment{
             MarkerId: 0xe1,
             Offset: 0x000080b4,
         },
-        Segment{
+        &Segment{
             MarkerId: 0xdb,
             Offset: 0x8ab6,
         },
-        Segment{
+        &Segment{
             MarkerId: 0xc0,
             Offset: 0x8b3c,
         },
-        Segment{
+        &Segment{
             MarkerId: 0xc4,
             Offset: 0x8b4f,
         },
-        Segment{
+        &Segment{
             MarkerId: 0xda,
             Offset: 0x8cf3,
         },
-        Segment{
+        &Segment{
             MarkerId: 0x0,
             Offset: 0x8cf5,
         },
-        Segment{
+        &Segment{
             MarkerId: 0xd9,
             Offset: 0x554d6d,
         },
     }
 
-    expectedSl := SegmentList(expected)
-
-    if len(sl) != len(expectedSl) {
-        t.Fatalf("Number of segments is unexpected: (%d) != (%d)", len(sl), len(expected))
+    if len(sl.segments) != len(expected) {
+        t.Fatalf("Number of segments is unexpected: (%d) != (%d)", len(sl.segments), len(expected))
     }
 
-    for i, s := range sl {
-        if s.MarkerId != expectedSl[i].MarkerId {
-            t.Fatalf("Segment (%d) marker-ID not correct: (0x%02x != 0x%02x)", i, s.MarkerId, expectedSl[i].MarkerId)
-        } else if s.Offset != expectedSl[i].Offset {
-            t.Fatalf("Segment (%d) offset not correct: (0x%08x != 0x%08x)", i, s.Offset, expectedSl[i].Offset)
+    for i, s := range sl.segments {
+        if s.MarkerId != expected[i].MarkerId {
+            t.Fatalf("Segment (%d) marker-ID not correct: (0x%02x != 0x%02x)", i, s.MarkerId, expected[i].MarkerId)
+        } else if s.Offset != expected[i].Offset {
+            t.Fatalf("Segment (%d) offset not correct: (0x%08x != 0x%08x)", i, s.Offset, expected[i].Offset)
         }
     }
 }
@@ -221,12 +215,14 @@ func TestParseBytesStructure_Offsets_Error(t *testing.T) {
     data, err := ioutil.ReadFile(filepath)
     log.PanicIf(err)
 
-    sl := SegmentList {
-        Segment{
+    segments := []*Segment {
+        &Segment{
             MarkerId: 0x0,
             Offset: 0x0,
         },
     }
+
+    sl := NewSegmentList(segments)
 
     err = sl.Validate(data)
     if err == nil {

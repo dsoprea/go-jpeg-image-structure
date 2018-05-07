@@ -9,7 +9,6 @@ import (
 
     "github.com/dsoprea/go-jpeg-image-structure"
     "github.com/dsoprea/go-logging"
-    "github.com/dsoprea/go-exif"
     "github.com/jessevdk/go-flags"
 )
 
@@ -56,7 +55,7 @@ func main() {
     sl, err := jpegstructure.ParseBytesStructure(data)
     log.PanicIf(err)
 
-    _, et, err := sl.ParseExif()
+    _, _, et, err := sl.DumpExif()
     log.PanicIf(err)
 
     if options.Json == true {

@@ -61,10 +61,10 @@ func main() {
     sl, err := jpegstructure.ParseBytesStructure(data)
     log.PanicIf(err)
 
-    segments := make([]segmentResult, len(sl))
+    segments := make([]segmentResult, len(sl.Segments()))
     segmentIndex := make(map[byte][]segmentIndexItem)
 
-    for i, s := range sl {
+    for i, s := range sl.Segments() {
         var data []byte
         if (options.JsonAsList == true || options.JsonAsObject == true) && options.IncludeData == true {
             data = s.Data

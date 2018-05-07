@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"fmt"
 	"errors"
+	"io"
 
 	"encoding/binary"
 
@@ -177,13 +178,47 @@ type Segment struct {
 	Data []byte
 }
 
-type SegmentList []Segment
+// SetExif encodes and sets EXIF data into this segment.
+func (s *Segment) SetExif(ib *exif.IfdBuilder) (err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
 
-func (sl SegmentList) Print() {
-	if len(sl) == 0 {
+    ibe := exif.NewIfdByteEncoder()
+
+    exifData, err := ibe.EncodeToExif(ib)
+    log.PanicIf(err)
+
+    s.Data = exifData
+
+ 	return nil
+}
+
+type SegmentList struct {
+	segments []*Segment
+}
+
+func NewSegmentList(segments []*Segment) (sl *SegmentList) {
+	return &SegmentList{
+		segments: segments,
+	}
+}
+
+func (sl *SegmentList) Segments() []*Segment {
+	return sl.segments
+}
+
+func (sl *SegmentList) Add(s *Segment) {
+	sl.segments = append(sl.segments, s)
+}
+
+func (sl *SegmentList) Print() {
+	if len(sl.segments) == 0 {
 		fmt.Printf("No segments.\n")
 	} else {
-		for i, s := range sl {
+		for i, s := range sl.segments {
 			fmt.Printf("% 2d: ID=(0x%02x) OFFSET=(0x%08x %d)\n", i, s.MarkerId, s.Offset, s.Offset)
 		}
 	}
@@ -191,25 +226,25 @@ func (sl SegmentList) Print() {
 
 // Validate checks that all of the markers are actually located at all of the
 // recorded offsets.
-func (sl SegmentList) Validate(data []byte) (err error) {
+func (sl *SegmentList) Validate(data []byte) (err error) {
 	defer func() {
 		if state := recover(); state != nil {
 			err = log.Wrap(state.(error))
 		}
 	}()
 
-	if len(sl) < 2 {
+	if len(sl.segments) < 2 {
 		log.Panicf("minimum segments not found")
 	}
 
-	if sl[0].MarkerId != MARKER_SOI {
+	if sl.segments[0].MarkerId != MARKER_SOI {
 		log.Panicf("first segment not SOI")
-	} else if sl[len(sl) - 1].MarkerId != MARKER_EOI {
+	} else if sl.segments[len(sl.segments) - 1].MarkerId != MARKER_EOI {
 		log.Panicf("last segment not EOI")
 	}
 
     lastOffset := 0
-    for i, s := range sl {
+    for i, s := range sl.segments {
         if lastOffset != 0 && s.Offset <= lastOffset {
             log.Panicf("segment offset not greater than the last: SEGMENT=(%d) (0x%08x) <= (0x%08x)", i, s.Offset, lastOffset)
         }
@@ -230,38 +265,132 @@ func (sl SegmentList) Validate(data []byte) (err error) {
     return nil
 }
 
-func (sl SegmentList) ParseExif() (segment Segment, exifTags []ExifTag, err error) {
+// FindExif returns the the segment that hosts the EXIF data.
+func (sl *SegmentList) FindExif() (index int, segment *Segment, err error) {
 	defer func() {
 		if state := recover(); state != nil {
 			err = log.Wrap(state.(error))
 		}
 	}()
 
-    exifTags = make([]ExifTag, 0)
-    for _, s := range sl {
+    for i, s := range sl.segments {
         if s.MarkerId < MARKER_APP0 || s.MarkerId > MARKER_APP15 {
             continue
         }
 
-        var err error
-
-        exifTags, err := GetExifData(s.Data)
-        if err != nil {
-            if log.Is(err, exif.ErrNotExif) == true {
-                continue
-            }
-
-            log.Panic(err)
+        if exif.IsExif(s.Data) == true {
+        	return i, s, nil
         }
-
-	    return s, exifTags, nil
     }
 
     log.Panic(ErrNoExif)
 
     // Never called.
-    return Segment{}, nil, nil
+    return -1, nil, nil
 }
+
+// ConstructExifBuilder returns an `exif.IfdBuilder` instance (needed for
+// modifying) preloaded with all existing tags.
+func (sl *SegmentList) ConstructExifBuilder() (segmentIndex int, s *Segment, rootIb *exif.IfdBuilder, err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+	segmentIndex, s, err = sl.FindExif()
+	log.PanicIf(err)
+
+    e := exif.NewExif()
+
+    _, index, err := e.Collect(s.Data)
+    log.PanicIf(err)
+
+	ib := exif.NewIfdBuilderFromExistingChain(index.RootIfd, s.Data)
+    return segmentIndex, s, ib, nil
+}
+
+// DumpExif returns an unstructured list of tags (useful when just reviewing).
+func (sl *SegmentList) DumpExif() (segmentIndex int, segment *Segment, exifTags []ExifTag, err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+	segmentIndex, s, err := sl.FindExif()
+	log.PanicIf(err)
+
+    exifTags, err = GetExifData(s.Data)
+    log.PanicIf(err)
+
+    return segmentIndex, s, exifTags, nil
+}
+
+// SetExif encodes and sets EXIF data into the given segment. If `index` is -1,
+// append a new segment.
+func (sl *SegmentList) SetExif(index int, markerId byte, ib *exif.IfdBuilder) (err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+    if markerId < MARKER_APP0 || markerId > MARKER_APP15 {
+		log.Panicf("Marker-ID must not be between (0x%02x) and (0x%02x) for EXIF data: (0x%02x)", MARKER_APP0, MARKER_APP15, markerId)
+    }
+
+    s := &Segment{
+		MarkerId: markerId,
+    }
+
+    err = s.SetExif(ib)
+    log.PanicIf(err)
+
+ 	if index == -1 {
+ 		sl.segments = append(sl.segments, s)
+ 	} else {
+ 		sl.segments[index] = s
+ 	}
+
+ 	return nil
+}
+
+func (sl *SegmentList) Write(w io.Writer) (err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+	for i, s := range sl.segments {
+		// The scan-data will have a marker-ID of (0) because it doesn't have a
+		// marker-ID or length.
+		if s.MarkerId != 0 {
+			_, err := w.Write([]byte { s.MarkerId })
+			log.PanicIf(err)
+
+			sizeLen, found := markerLen[s.MarkerId]
+			if found == false || sizeLen == 2 {
+				len_ := uint16(len(s.Data))
+				err = binary.Write(w, binary.BigEndian, &len_)
+				log.PanicIf(err)
+			} else if sizeLen == 4 {
+				len_ := uint32(len(s.Data))
+				err = binary.Write(w, binary.BigEndian, &len_)
+				log.PanicIf(err)
+			} else if sizeLen != 0 {
+				log.Panicf("not a supported marker-size: SEGMENT-INDEX=(%d) MARKER-ID=(0x%02x) MARKER-SIZE-LEN=(%d)", i, s.MarkerId, sizeLen)
+			}
+		}
+
+		_, err := w.Write(s.Data)
+		log.PanicIf(err)
+	}
+
+	return nil
+}
+
 
 type JpegSplitter struct {
 	lastMarkerId byte
@@ -464,6 +593,8 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 		//
 		// The length is an unsigned 32-bit network/big-endian.
 
+// TODO(dustin): !! This needs to be tested, but we need an image.
+
 		if sizeLen != 4 {
 			log.Panicf("known non-zero marker is not four bytes, which is not currently handled: M=(%x)", markerId)
 		}
@@ -567,7 +698,7 @@ func (js *JpegSplitter) handleSegment(markerId byte, markerName string, headerSi
 	cloned := make([]byte, len(payload))
 	copy(cloned, payload)
 
-	s := Segment{
+	s := &Segment{
 		MarkerId: markerId,
 		MarkerName: markerName,
 		Offset: js.currentOffset,
@@ -575,7 +706,7 @@ func (js *JpegSplitter) handleSegment(markerId byte, markerName string, headerSi
 	}
 
 	js.currentOffset += headerSize + len(payload)
-	js.segments = append(js.segments, s)
+	js.segments.Add(s)
 
 	sv, ok := js.visitor.(SegmentVisitor)
 	if ok == true {

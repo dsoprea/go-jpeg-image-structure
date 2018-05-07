@@ -80,6 +80,10 @@ type ExifTag struct {
     ChildIfdName string `json:"child_ifd_name"`
 }
 
+func (et ExifTag) String() string {
+    return fmt.Sprintf("ExifTag<PARENT-IFD=[%s] IFD=[%s] TAG-ID=(0x%02x) TAG-NAME=[%s] TAG-TYPE=[%s] VALUE=[%v] CHILD-IFD=[%s]", et.ParentIfdName, et.IfdName, et.TagId, et.TagName, et.TagTypeName, et.Value, et.ChildIfdName)
+}
+
 func GetExifData(exifData []byte) (exifTags []ExifTag, err error) {
     defer func() {
         if state := recover(); state != nil {
