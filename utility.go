@@ -115,7 +115,13 @@ func GetExifData(exifData []byte) (exifTags []ExifTag, err error) {
         ti := exif.NewTagIndex()
         for _, ite := range ifd.Entries {
             it, err := ti.Get(ii, ite.TagId)
-            log.PanicIf(err)
+            if err != nil {
+                if log.Is(err, exif.ErrTagNotFound) == true {
+                    continue
+                }
+
+                log.PanicIf(err)
+            }
 
             value, err := ifd.TagValue(ite)
 
