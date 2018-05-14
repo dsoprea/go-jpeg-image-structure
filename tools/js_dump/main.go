@@ -18,6 +18,7 @@ var (
         JsonAsList bool `short:"l" long:"json-list" description:"Print segments as a JSON object"`
         JsonAsObject bool `short:"o" long:"json-object" description:"Print segments as a JSON object"`
         IncludeData bool `short:"d" long:"data" description:"Include actual JPEG data (only with JSON)"`
+        Verbose bool `short:"v" long:"verbose" description:"Enable logging verbosity"`
     } {}
 )
 
@@ -40,6 +41,16 @@ func main() {
     _, err := flags.Parse(options)
     if err != nil {
         os.Exit(-1)
+    }
+
+    if options.Verbose == true {
+        scp := log.NewStaticConfigurationProvider()
+        scp.SetLevelName(log.LevelNameDebug)
+
+        log.LoadConfiguration(scp)
+
+        cla := log.NewConsoleLogAdapter()
+        log.AddAdapter("console", cla)
     }
 
     if options.JsonAsList == true && options.JsonAsObject == true {
