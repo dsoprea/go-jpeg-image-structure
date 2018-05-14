@@ -441,9 +441,14 @@ func (js *JpegSplitter) processScanData(data []byte) (advanceBytes int, err erro
 	found := false
 	i := 0
 	for ; i < dataLength - 1; i++ {
-		// We read until we hit the EOI marker, which always follows (we're not
-		// processing the EOI here, however).
-		if data[i] == 0xff && data[i + 1] == MARKER_EOI {
+		// We read until we hit the EOI marker, which always follows. We're not
+		// processing *into* the EOI here.
+		//
+		// Note that, at the risk of hitting something that *looks* like the
+		// marker in the scan-data, we also check for a preceding 0xFF, which
+		// is how any 0xFF bytes that happen to occur in the scan-data are
+		// escaped.
+		if i > 0 && data[i - 1] != 0xff && data[i] == 0xff && data[i + 1] == MARKER_EOI {
 			found = true
 			break
 		}
@@ -497,18 +502,17 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 		}
 	}
 
-// TODO(dustin): !! We're assuming that ignoring atEOF and returning (0, nil, nil) when we need more data and there isn't any will raise an io.EOF (thereby delegating a redundant check to our caller). We might want to specifically run an example for this scenario.
-
 	dataLength := len(data)
 
 	jpegLogger.Debugf(nil, "SPLIT: LEN=(%d) COUNTER=(%d)", dataLength, js.counter)
 
-	// If the last segment was the SOS, we're currently sitting on scan data.
-	// Search for the EOI marker aferward in order to know how much data there
-	// is. Return this as its own token.
-	//
-	// REF: https://stackoverflow.com/questions/26715684/parsing-jpeg-sos-marker
 	if js.lastMarkerId == MARKER_SOS {
+		// If the last segment was the SOS, we're currently sitting on scan data.
+		// Search for the EOI marker aferward in order to know how much data there
+		// is. Return this as its own token.
+		//
+		// REF: https://stackoverflow.com/questions/26715684/parsing-jpeg-sos-marker
+
 		advanceBytes, err := js.processScanData(data)
 		log.PanicIf(err)
 
@@ -516,6 +520,13 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 		// data and then need to run again or will return an actual byte count
 		// to progress by.
 		return advanceBytes, nil, nil
+	} else if js.lastMarkerId == MARKER_EOI {
+		// We have more data following the EOI, which is unexpected. There
+		// might be non-standard cruft at the end of the file. Terminate the
+		// parse because the file-structure is, technically, complete at this
+		// point.
+
+		return 0, nil, io.EOF
 	} else {
 		js.lastIsScanData = false
 	}
@@ -538,7 +549,7 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 		}
 	}
 
-	jpegLogger.Debugf(nil, "Skipped by leading 0xFF bytes: (%d)", i)
+	jpegLogger.Debugf(nil, "Skipped over leading 0xFF bytes: (%d)", i)
 
 	if found == false || i >= dataLength {
 		jpegLogger.Debugf(nil, "Not enough (3)")
@@ -706,6 +717,7 @@ func (js *JpegSplitter) handleSegment(markerId byte, markerName string, headerSi
 	}
 
 	js.currentOffset += headerSize + len(payload)
+
 	js.segments.Add(s)
 
 	sv, ok := js.visitor.(SegmentVisitor)
