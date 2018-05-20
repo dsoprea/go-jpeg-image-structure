@@ -201,9 +201,27 @@ type SegmentList struct {
 }
 
 func NewSegmentList(segments []*Segment) (sl *SegmentList) {
+	if segments == nil {
+		segments = make([]*Segment, 0)
+	}
+
 	return &SegmentList{
 		segments: segments,
 	}
+}
+
+func (sl *SegmentList) OffsetsEqual(o *SegmentList) bool {
+    if len(o.segments) != len(sl.segments) {
+        return false
+    }
+
+    for i, s := range o.segments {
+        if s.MarkerId != sl.segments[i].MarkerId || s.Offset != sl.segments[i].Offset {
+            return false
+        }
+    }
+
+    return true
 }
 
 func (sl *SegmentList) Segments() []*Segment {
@@ -310,6 +328,13 @@ func (sl *SegmentList) ConstructExifBuilder() (segmentIndex int, s *Segment, roo
     return segmentIndex, s, ib, nil
 }
 
+// Dump prints the offsets and segment info.
+func (sl *SegmentList) Dump() {
+	for i, s := range sl.segments {
+		fmt.Printf("%02d: OFFSET=(0x%08x) ID=(0x%02x)\n", i, s.Offset, s.MarkerId)
+	}
+}
+
 // DumpExif returns an unstructured list of tags (useful when just reviewing).
 func (sl *SegmentList) DumpExif() (segmentIndex int, segment *Segment, exifTags []ExifTag, err error) {
 	defer func() {
@@ -400,16 +425,17 @@ type JpegSplitter struct {
 	visitor interface{}
 
 	currentOffset int
-	segments SegmentList
+	segments *SegmentList
 }
 
 func NewJpegSplitter(visitor interface{}) *JpegSplitter {
 	return &JpegSplitter{
+		segments: NewSegmentList(nil),
 		visitor: visitor,
 	}
 }
 
-func (js *JpegSplitter) Segments() SegmentList {
+func (js *JpegSplitter) Segments() *SegmentList {
 	return js.segments
 }
 
@@ -436,31 +462,24 @@ func (js *JpegSplitter) processScanData(data []byte) (advanceBytes int, err erro
 		}
 	}()
 
-	dataLength := len(data)
+	chunkLength := len(data)
 
-	found := false
-	i := 0
-	for ; i < dataLength - 1; i++ {
-		// We read until we hit the EOI marker, which always follows. We're not
-		// processing *into* the EOI here.
-		//
-		// Note that, at the risk of hitting something that *looks* like the
-		// marker in the scan-data, we also check for a preceding 0xFF, which
-		// is how any 0xFF bytes that happen to occur in the scan-data are
-		// escaped.
-		if i > 0 && data[i - 1] != 0xff && data[i] == 0xff && data[i + 1] == MARKER_EOI {
-			found = true
-			break
-		}
-	}
-
-	if found == false {
+	// The EOI marker follows the scan-data, there is only one allowed, and it
+	// has to be at the very end of the file. Plus, we do occasionally see the
+	// (0xff, EOI) sequence in the scan-data and it's not escaped like it
+	// should be, and the image appears to look the same whether we incldue the
+	// data after it or not (which implis there are multiple EOI's, which
+	// doesn't make sense). So, we don't know what else to do other than to
+	// take the safe approach.
+	//
+	// If the file is malformed and this isn't actually present, the split
+	// operation will fail automatically.
+	if data[chunkLength - 2] != 0xff || data[chunkLength - 1] != MARKER_EOI {
 		jpegLogger.Debugf(nil, "Not enough (2)")
 		return 0, nil
 	}
 
-	// Jump past the current 0xff and marker bytes.
-	// i += 2
+	dataLength := chunkLength - 2
 
 	js.lastIsScanData = true
 	js.lastMarkerId = 0
@@ -471,10 +490,10 @@ func (js *JpegSplitter) processScanData(data []byte) (advanceBytes int, err erro
 
 	jpegLogger.Debugf(nil, "End of scan-data.")
 
-	err = js.handleSegment(0x0, "!SCANDATA", 0x0, data[:i])
+	err = js.handleSegment(0x0, "!SCANDATA", 0x0, data[:dataLength])
 	log.PanicIf(err)
 
-	return i, nil
+	return dataLength, nil
 }
 
 func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byte, err error) {
@@ -502,9 +521,9 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 		}
 	}
 
-	dataLength := len(data)
+	chunkLength := len(data)
 
-	jpegLogger.Debugf(nil, "SPLIT: LEN=(%d) COUNTER=(%d)", dataLength, js.counter)
+	jpegLogger.Debugf(nil, "SPLIT: LEN=(%d) COUNTER=(%d)", chunkLength, js.counter)
 
 	if js.lastMarkerId == MARKER_SOS {
 		// If the last segment was the SOS, we're currently sitting on scan data.
@@ -535,12 +554,12 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 	// beginning of a segment (just before the marker).
 
 	if data[0] != 0xff {
-		log.Panicf("not on new segment marker: (%02X)", data[0])
+		log.Panicf("not on new segment marker @ (%d): (%02X)", js.currentOffset, data[0])
 	}
 
 	i := 0
 	found := false
-	for ; i < dataLength; i++ {
+	for ; i < chunkLength; i++ {
 		jpegLogger.Debugf(nil, "Prefix check: (%d) %02X", i, data[i])
 
 		if data[i] != 0xff {
@@ -551,7 +570,7 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 
 	jpegLogger.Debugf(nil, "Skipped over leading 0xFF bytes: (%d)", i)
 
-	if found == false || i >= dataLength {
+	if found == false || i >= chunkLength {
 		jpegLogger.Debugf(nil, "Not enough (3)")
 		return 0, nil, nil
 	}
@@ -580,7 +599,7 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 		// marker-ID + size => 2 + 2
 		headerSize = 2 + 2
 
-		if i + 2 >= dataLength {
+		if i + 2 >= chunkLength {
 			jpegLogger.Debugf(nil, "Not enough (4)")
 			return 0, nil, nil
 		}
@@ -610,7 +629,7 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 			log.Panicf("known non-zero marker is not four bytes, which is not currently handled: M=(%x)", markerId)
 		}
 
-		if i + 4 >= dataLength {
+		if i + 4 >= chunkLength {
 			jpegLogger.Debugf(nil, "Not enough (5)")
 			return 0, nil, nil
 		}
@@ -635,7 +654,7 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 
 	i += int(payloadLength)
 
-	if i > dataLength {
+	if i > chunkLength {
 		jpegLogger.Debugf(nil, "Not enough (6)")
 		return 0, nil, nil
 	}

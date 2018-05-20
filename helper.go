@@ -9,7 +9,7 @@ import (
     "github.com/dsoprea/go-logging"
 )
 
-func ParseSegments(r io.Reader, size int) (sl SegmentList, err error) {
+func ParseSegments(r io.Reader, size int) (sl *SegmentList, err error) {
     defer func() {
         if state := recover(); state != nil {
             err = log.Wrap(state.(error))
@@ -32,7 +32,7 @@ func ParseSegments(r io.Reader, size int) (sl SegmentList, err error) {
     return js.Segments(), nil
 }
 
-func ParseFileStructure(filepath string) (sl SegmentList, err error) {
+func ParseFileStructure(filepath string) (sl *SegmentList, err error) {
     defer func() {
         if state := recover(); state != nil {
             err = log.Wrap(state.(error))
@@ -53,7 +53,7 @@ func ParseFileStructure(filepath string) (sl SegmentList, err error) {
     return sl, nil
 }
 
-func ParseBytesStructure(data []byte) (sl SegmentList, err error) {
+func ParseBytesStructure(data []byte) (sl *SegmentList, err error) {
     defer func() {
         if state := recover(); state != nil {
             err = log.Wrap(state.(error))
