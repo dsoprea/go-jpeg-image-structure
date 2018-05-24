@@ -74,7 +74,7 @@ func TestMain_Plain_Exif(t *testing.T) {
 26: IFD=[Exif] ID=(0x9209) NAME=[Flash] TYPE=(3):[SHORT] VALUE=[[16]]
 27: IFD=[Exif] ID=(0x920a) NAME=[FocalLength] TYPE=(5):[RATIONAL] VALUE=[[{16 1}]]
 28: IFD=[Exif] ID=(0x927c) NAME=[MakerNote] TYPE=(7):[UNDEFINED] VALUE=[MakerNote<TYPE-ID=[28 00 01 00 03 00 31 00 00 00 74 05 00 00 02 00 03 00 04 00]>]
-29: IFD=[Exif] ID=(0x9286) NAME=[UserComment] TYPE=(7):[UNDEFINED] VALUE=[UserComment<ENCODING=[UNDEFINED] V=[]>]
+29: IFD=[Exif] ID=(0x9286) NAME=[UserComment] TYPE=(7):[UNDEFINED] VALUE=[UserComment<SIZE=(0) ENCODING=[UNDEFINED] V=[]>]
 30: IFD=[Exif] ID=(0x9290) NAME=[SubSecTime] TYPE=(2):[ASCII] VALUE=[00]
 31: IFD=[Exif] ID=(0x9291) NAME=[SubSecTimeOriginal] TYPE=(2):[ASCII] VALUE=[00]
 32: IFD=[Exif] ID=(0x9292) NAME=[SubSecTimeDigitized] TYPE=(2):[ASCII] VALUE=[00]
