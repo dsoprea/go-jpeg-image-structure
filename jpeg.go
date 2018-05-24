@@ -237,7 +237,7 @@ func (sl *SegmentList) Print() {
 		fmt.Printf("No segments.\n")
 	} else {
 		for i, s := range sl.segments {
-			fmt.Printf("% 2d: ID=(0x%02x) OFFSET=(0x%08x %d)\n", i, s.MarkerId, s.Offset, s.Offset)
+			fmt.Printf("% 2d: OFFSET=(0x%08x %d) ID=(0x%02x) SIZE=(%d)\n", i, s.MarkerId, s.Offset, s.Offset, len(s.Data))
 		}
 	}
 }
@@ -328,13 +328,6 @@ func (sl *SegmentList) ConstructExifBuilder() (segmentIndex int, s *Segment, roo
     return segmentIndex, s, ib, nil
 }
 
-// Dump prints the offsets and segment info.
-func (sl *SegmentList) Dump() {
-	for i, s := range sl.segments {
-		fmt.Printf("%02d: OFFSET=(0x%08x) ID=(0x%02x)\n", i, s.Offset, s.MarkerId)
-	}
-}
-
 // DumpExif returns an unstructured list of tags (useful when just reviewing).
 func (sl *SegmentList) DumpExif() (segmentIndex int, segment *Segment, exifTags []ExifTag, err error) {
 	defer func() {
@@ -346,7 +339,7 @@ func (sl *SegmentList) DumpExif() (segmentIndex int, segment *Segment, exifTags 
 	segmentIndex, s, err := sl.FindExif()
 	log.PanicIf(err)
 
-    exifTags, err = GetExifData(s.Data)
+    exifTags, err = GetFlatExifData(s.Data)
     log.PanicIf(err)
 
     return segmentIndex, s, exifTags, nil

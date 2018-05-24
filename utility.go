@@ -76,15 +76,16 @@ type ExifTag struct {
     TagTypeId uint16 `json:"type_id"`
     TagTypeName string `json:"type_name"`
     Value interface{} `json:"value"`
+    ValueBytes []byte `json:"value_bytes"`
 
     ChildIfdName string `json:"child_ifd_name"`
 }
 
 func (et ExifTag) String() string {
-    return fmt.Sprintf("ExifTag<PARENT-IFD=[%s] IFD=[%s] TAG-ID=(0x%02x) TAG-NAME=[%s] TAG-TYPE=[%s] VALUE=[%v] CHILD-IFD=[%s]", et.ParentIfdName, et.IfdName, et.TagId, et.TagName, et.TagTypeName, et.Value, et.ChildIfdName)
+    return fmt.Sprintf("ExifTag<PARENT-IFD=[%s] IFD=[%s] TAG-ID=(0x%02x) TAG-NAME=[%s] TAG-TYPE=[%s] VALUE=[%v] VALUE-BYTES=(%d) CHILD-IFD=[%s]", et.ParentIfdName, et.IfdName, et.TagId, et.TagName, et.TagTypeName, et.Value, len(et.ValueBytes), et.ChildIfdName)
 }
 
-func GetExifData(exifData []byte) (exifTags []ExifTag, err error) {
+func ParseExifData(exifData []byte) (rootIfd *exif.Ifd, err error) {
     defer func() {
         if state := recover(); state != nil {
             err = log.Wrap(state.(error))
@@ -96,8 +97,20 @@ func GetExifData(exifData []byte) (exifTags []ExifTag, err error) {
     _, index, err := e.Collect(exifData)
     log.PanicIf(err)
 
-    q := make([]*exif.Ifd, 1)
-    q[0] = index.RootIfd
+    return index.RootIfd, nil
+}
+
+func GetFlatExifData(exifData []byte) (exifTags []ExifTag, err error) {
+    defer func() {
+        if state := recover(); state != nil {
+            err = log.Wrap(state.(error))
+        }
+    }()
+
+    rootIfd, err := ParseExifData(exifData)
+    log.PanicIf(err)
+
+    q := []*exif.Ifd{ rootIfd }
 
     exifTags = make([]ExifTag, 0)
 
@@ -114,25 +127,33 @@ func GetExifData(exifData []byte) (exifTags []ExifTag, err error) {
 
         ti := exif.NewTagIndex()
         for _, ite := range ifd.Entries {
+            tagName := ""
+
             it, err := ti.Get(ii, ite.TagId)
             if err != nil {
-                if log.Is(err, exif.ErrTagNotFound) == true {
-                    continue
+                // If it's a non-standard tag, just leave the name blank.
+                if log.Is(err, exif.ErrTagNotFound) != true {
+                    log.PanicIf(err)
                 }
-
-                log.PanicIf(err)
+            } else {
+                tagName = it.Name
             }
 
             value, err := ifd.TagValue(ite)
+            log.PanicIf(err)
+
+            valueBytes, err := ifd.TagValueBytes(ite)
+            log.PanicIf(err)
 
             et := ExifTag{
                 ParentIfdName: parentIfdName,
                 IfdName: ii.IfdName,
                 TagId: ite.TagId,
-                TagName: it.Name,
+                TagName: tagName,
                 TagTypeId: ite.TagType,
                 TagTypeName: exif.TypeNames[ite.TagType],
                 Value: value,
+                ValueBytes: valueBytes,
                 ChildIfdName: ite.ChildIfdName,
             }
 
