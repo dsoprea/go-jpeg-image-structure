@@ -131,7 +131,7 @@ func TestMain_Json_NoData_SegmentIndex(t *testing.T) {
     raw := b.Bytes()
 
     if err != nil {
-        fmt.Printf(string(raw))
+        fmt.Printf("RAW:\n%s\n", string(raw))
         panic(err)
     }
 

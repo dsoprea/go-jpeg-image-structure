@@ -1,5 +1,6 @@
+[![Build Status](https://travis-ci.org/dsoprea/go-jpeg-image-structure.svg?branch=master)](https://travis-ci.org/dsoprea/go-jpeg-image-structure)
+[![Coverage Status](https://coveralls.io/repos/github/dsoprea/go-jpeg-image-structure/badge.svg?branch=master)](https://coveralls.io/github/dsoprea/go-jpeg-image-structure?branch=master)
+
 ## Overview
 
-Parse raw JPEG data into individual segments of data. You can print or export this data. You can also parse/modify the EXIF data.
-
-**Currently in active development.**
+Parse raw JPEG data into individual segments of data. You can print or export this data, including hash digests for each. You can also parse/modify the EXIF data and write an updated image.
