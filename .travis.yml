@@ -1,0 +1,12 @@
+language: go
+go:
+  - 1.9
+  - 1.8
+  - 1.7
+  - 1.6
+  - master
+install:
+  - go get -t ./...
+  - go get github.com/mattn/goveralls
+script:
+  - goveralls -v -service=travis-ci
