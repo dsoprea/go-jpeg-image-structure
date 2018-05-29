@@ -74,7 +74,7 @@ func TestMain_Plain_Exif(t *testing.T) {
 26: IFD=[Exif] ID=(0x9209) NAME=[Flash] TYPE=(3):[SHORT] VALUE=[[16]]
 27: IFD=[Exif] ID=(0x920a) NAME=[FocalLength] TYPE=(5):[RATIONAL] VALUE=[[{16 1}]]
 28: IFD=[Exif] ID=(0x927c) NAME=[MakerNote] TYPE=(7):[UNDEFINED] VALUE=[MakerNote<TYPE-ID=[28 00 01 00 03 00 31 00 00 00 74 05 00 00 02 00 03 00 04 00]>]
-29: IFD=[Exif] ID=(0x9286) NAME=[UserComment] TYPE=(7):[UNDEFINED] VALUE=[UserComment<SIZE=(0) ENCODING=[UNDEFINED] V=[]>]
+29: IFD=[Exif] ID=(0x9286) NAME=[UserComment] TYPE=(7):[UNDEFINED] VALUE=[UserComment<SIZE=(256) ENCODING=[UNDEFINED] V=[0 0 0 0 0 0 0 0]... LEN=(256)>]
 30: IFD=[Exif] ID=(0x9290) NAME=[SubSecTime] TYPE=(2):[ASCII] VALUE=[00]
 31: IFD=[Exif] ID=(0x9291) NAME=[SubSecTimeOriginal] TYPE=(2):[ASCII] VALUE=[00]
 32: IFD=[Exif] ID=(0x9292) NAME=[SubSecTimeDigitized] TYPE=(2):[ASCII] VALUE=[00]
@@ -96,8 +96,12 @@ func TestMain_Plain_Exif(t *testing.T) {
 48: IFD=[Exif] ID=(0xa434) NAME=[LensModel] TYPE=(2):[ASCII] VALUE=[EF16-35mm f/4L IS USM]
 49: IFD=[Exif] ID=(0xa435) NAME=[LensSerialNumber] TYPE=(2):[ASCII] VALUE=[2400001068]
 50: IFD=[GPSInfo] ID=(0x00) NAME=[GPSVersionID] TYPE=(1):[BYTE] VALUE=[[2 3 0 0]]
-51: IFD=[Iop] ID=(0x01) NAME=[InteroperabilityIndex] TYPE=(2):[ASCII] VALUE=[R98]
-52: IFD=[Iop] ID=(0x02) NAME=[InteroperabilityVersion] TYPE=(7):[UNDEFINED] VALUE=[0100]
+51: IFD=[IFD] ID=(0x103) NAME=[Compression] TYPE=(3):[SHORT] VALUE=[[6]]
+52: IFD=[IFD] ID=(0x11a) NAME=[XResolution] TYPE=(5):[RATIONAL] VALUE=[[{72 1}]]
+53: IFD=[IFD] ID=(0x11b) NAME=[YResolution] TYPE=(5):[RATIONAL] VALUE=[[{72 1}]]
+54: IFD=[IFD] ID=(0x128) NAME=[ResolutionUnit] TYPE=(3):[SHORT] VALUE=[[2]]
+55: IFD=[Iop] ID=(0x01) NAME=[InteroperabilityIndex] TYPE=(2):[ASCII] VALUE=[R98]
+56: IFD=[Iop] ID=(0x02) NAME=[InteroperabilityVersion] TYPE=(7):[UNDEFINED] VALUE=[0100]
 `
 
     if actual != expected {
@@ -133,7 +137,9 @@ func TestMain_Json_Exif(t *testing.T) {
     err = json.Unmarshal(raw, &result)
     log.PanicIf(err)
 
-    if len(result) != 53 {
+// TODO(dustin): !! Store the expected JSON in a file.
+
+    if len(result) != 57 {
         t.Fatalf("Exif tag-count not correct: (%d)", len(result))
     }
 }

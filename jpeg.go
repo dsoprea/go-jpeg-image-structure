@@ -8,6 +8,8 @@ import (
 	"io"
 
 	"encoding/binary"
+	"encoding/hex"
+	"crypto/sha1"
 
 	"github.com/dsoprea/go-logging"
 	"github.com/dsoprea/go-exif"
@@ -237,7 +239,12 @@ func (sl *SegmentList) Print() {
 		fmt.Printf("No segments.\n")
 	} else {
 		for i, s := range sl.segments {
-			fmt.Printf("% 2d: OFFSET=(0x%08x %d) ID=(0x%02x) SIZE=(%d)\n", i, s.MarkerId, s.Offset, s.Offset, len(s.Data))
+			h := sha1.New()
+			h.Write(s.Data)
+
+			digestString := hex.EncodeToString(h.Sum(nil))
+
+			fmt.Printf("% 2d: OFFSET=(0x%08x %10d) ID=(0x%08x) NAME=[%-4s] SIZE=(%10d) SHA1=[%s]\n", i, s.Offset, s.Offset, s.MarkerId, markerNames[s.MarkerId], len(s.Data), digestString)
 		}
 	}
 }
@@ -309,14 +316,16 @@ func (sl *SegmentList) FindExif() (index int, segment *Segment, err error) {
 
 // ConstructExifBuilder returns an `exif.IfdBuilder` instance (needed for
 // modifying) preloaded with all existing tags.
-func (sl *SegmentList) ConstructExifBuilder() (segmentIndex int, s *Segment, rootIb *exif.IfdBuilder, err error) {
+func (sl *SegmentList) Exif() (rootIfd *exif.Ifd, s *Segment, err error) {
 	defer func() {
 		if state := recover(); state != nil {
 			err = log.Wrap(state.(error))
 		}
 	}()
 
-	segmentIndex, s, err = sl.FindExif()
+// TODO(dustin): !! Add test.
+
+	_, s, err = sl.FindExif()
 	log.PanicIf(err)
 
     e := exif.NewExif()
@@ -324,7 +333,24 @@ func (sl *SegmentList) ConstructExifBuilder() (segmentIndex int, s *Segment, roo
     _, index, err := e.Collect(s.Data)
     log.PanicIf(err)
 
-	ib := exif.NewIfdBuilderFromExistingChain(index.RootIfd, s.Data)
+    return index.RootIfd, s, nil
+}
+
+// ConstructExifBuilder returns an `exif.IfdBuilder` instance (needed for
+// modifying) preloaded with all existing tags.
+func (sl *SegmentList) ConstructExifBuilder() (segmentIndex int, s *Segment, rootIb *exif.IfdBuilder, err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+	rootIfd, s, err := sl.Exif()
+	log.PanicIf(err)
+
+    itevr := exif.NewIfdTagEntryValueResolver(s.Data, rootIfd.ByteOrder)
+	ib := exif.NewIfdBuilderFromExistingChain(rootIfd, itevr)
+
     return segmentIndex, s, ib, nil
 }
 
@@ -381,22 +407,41 @@ func (sl *SegmentList) Write(w io.Writer) (err error) {
 		}
 	}()
 
+	offset := 0
+
 	for i, s := range sl.segments {
+		h := sha1.New()
+		h.Write(s.Data)
+
 		// The scan-data will have a marker-ID of (0) because it doesn't have a
 		// marker-ID or length.
 		if s.MarkerId != 0 {
-			_, err := w.Write([]byte { s.MarkerId })
+			_, err := w.Write([]byte { 0xff })
 			log.PanicIf(err)
+
+			offset++
+
+			_, err = w.Write([]byte { s.MarkerId })
+			log.PanicIf(err)
+
+			offset++
 
 			sizeLen, found := markerLen[s.MarkerId]
 			if found == false || sizeLen == 2 {
-				len_ := uint16(len(s.Data))
+				sizeLen = 2
+				len_ := uint16(len(s.Data) + sizeLen)
+
 				err = binary.Write(w, binary.BigEndian, &len_)
 				log.PanicIf(err)
+
+				offset += 2
 			} else if sizeLen == 4 {
-				len_ := uint32(len(s.Data))
+				len_ := uint32(len(s.Data) + sizeLen)
+
 				err = binary.Write(w, binary.BigEndian, &len_)
 				log.PanicIf(err)
+
+				offset += 4
 			} else if sizeLen != 0 {
 				log.Panicf("not a supported marker-size: SEGMENT-INDEX=(%d) MARKER-ID=(0x%02x) MARKER-SIZE-LEN=(%d)", i, s.MarkerId, sizeLen)
 			}
@@ -404,6 +449,8 @@ func (sl *SegmentList) Write(w io.Writer) (err error) {
 
 		_, err := w.Write(s.Data)
 		log.PanicIf(err)
+
+		offset += len(s.Data)
 	}
 
 	return nil

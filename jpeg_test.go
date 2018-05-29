@@ -7,10 +7,11 @@ import (
 	"bufio"
 	"bytes"
 	"reflect"
-	// "fmt"
+
+	"io/ioutil"
 
 	"github.com/dsoprea/go-logging"
-	// "github.com/dsoprea/go-exif"
+	"github.com/dsoprea/go-exif"
 )
 
 var (
@@ -111,105 +112,198 @@ func Test_JpegSplitter_Split(t *testing.T) {
 	}
 }
 
-// func Test_SegmentList__Update_Exif(t *testing.T) {
-//     defer func() {
-//         if state := recover(); state != nil {
-//             err := log.Wrap(state.(error))
-//             log.PrintErrorf(err, "Test failure.")
-//         }
-//     }()
+func Test_SegmentList_Write(t *testing.T) {
+    defer func() {
+        if state := recover(); state != nil {
+            err := log.Wrap(state.(error))
+            log.PrintErrorf(err, "Test failure.")
+        }
+    }()
 
-//     filepath := path.Join(assetsPath, testImageRelFilepath)
+    filepath := path.Join(assetsPath, testImageRelFilepath)
 
-// // TODO(dustin): !! Also test writing EXIF created from-scratch.
-// // TODO(dustin): !! Test adding a new EXIF (drop the existing).
-// // TODO(dustin): !! Test (sl).SetExif .
+    data, err := ioutil.ReadFile(filepath)
+    log.PanicIf(err)
 
-//     sl, err := ParseFileStructure(filepath)
-//     log.PanicIf(err)
+    r := bytes.NewBuffer(data)
+
+    sl, err := ParseSegments(r, len(data))
+    log.PanicIf(err)
+
+    b := new(bytes.Buffer)
+
+	err = sl.Write(b)
+	log.PanicIf(err)
+
+	actual := b.Bytes()
+
+	if bytes.Compare(actual, data) != 0 {
+		t.Fatalf("output bytes do not equal input bytes")
+	}
+}
+
+func Test_SegmentList_WriteReconstitutedExif(t *testing.T) {
+    defer func() {
+        if state := recover(); state != nil {
+            err := log.Wrap(state.(error))
+            log.PrintErrorf(err, "Test failure.")
+        }
+    }()
+
+    filepath := path.Join(assetsPath, testImageRelFilepath)
+
+    sl, err := ParseFileStructure(filepath)
+    log.PanicIf(err)
+
+	_, s, rootIb, err := sl.ConstructExifBuilder()
+	log.PanicIf(err)
+
+	err = s.SetExif(rootIb)
+	log.PanicIf(err)
+
+	f, err := os.Create("/tmp/no_change_exif.jpg")
+	log.PanicIf(err)
+
+	defer f.Close()
+
+	err = sl.Write(f)
+	log.PanicIf(err)
+}
+
+func Test_SegmentList__UpdateExif(t *testing.T) {
+    defer func() {
+        if state := recover(); state != nil {
+            err := log.Wrap(state.(error))
+            log.PrintErrorf(err, "Test failure.")
+        }
+    }()
+
+    filepath := path.Join(assetsPath, testImageRelFilepath)
+
+// TODO(dustin): !! Also test writing EXIF created from-scratch.
+// TODO(dustin): !! Test adding a new EXIF (drop the existing).
+// TODO(dustin): !! Might want to test a reconstruction without actually modifying anything. This is also useful. Everything will still be reallocated and this will help us determine if we're having parsing/encoding problems versions problems with an individual tag's value.
+// TODO(dustin): !! Use native/third-party EXIF support to test?
 
 
-// // TODO(dustin): !! Confirm tags before.
-// 	_, s, tags, err := sl.DumpExif()
-// 	log.PanicIf(err)
+    // Parse the image.
 
-// 	s = s
-
-// 	fmt.Printf("\n")
-// 	fmt.Printf("BEFORE:\n")
-// 	fmt.Printf("\n")
-
-// 	for i, tag := range tags {
-// 		fmt.Printf("%02d: %v\n", i, tag)
-// 	}
-
-// 	_, s, rootIb, err := sl.ConstructExifBuilder()
-// 	log.PanicIf(err)
-
-// 	// fmt.Printf("\n")
-// 	// fmt.Printf("IB:\n")
-// 	// fmt.Printf("\n")
-
-// 	// fmt.Printf("%v\n", rootIb)
-
-// 	i, err := rootIb.Find(exif.IfdExifId)
-// 	log.PanicIf(err)
-
-// 	exifBt := rootIb.Tags()[i]
-// 	exifIb := exifBt.Value().Ib()
+    sl, err := ParseFileStructure(filepath)
+    log.PanicIf(err)
 
 
-// 	uc := exif.TagUnknownType_9298_UserComment{
-// 	    EncodingType: exif.TagUnknownType_9298_UserComment_Encoding_ASCII,
-// 	    EncodingBytes: []byte("TEST EXIF CHANGE"),
-// 	}
+    // Update the UserComment tag.
 
-// 	err = exifIb.SetFromConfigWithName("UserComment", uc)
-// 	log.PanicIf(err)
+	_, s, rootIb, err := sl.ConstructExifBuilder()
+	log.PanicIf(err)
 
+	i, err := rootIb.Find(exif.IfdExifId)
+	log.PanicIf(err)
 
-
-// // TODO(dustin): !! Might want to test a reconstruction without actually modifying anything. This is also useful. Everything will still be reallocated and this will help us determine if we're having parsing/encoding problems versions problems with an individual tag's value.
-
-// // TODO(dustin): !! The output doesn't have the thumbnail(s).
-
-// // TODO(dustin): !! We think we're writing the original IFD *and* our updated IFD, one after the other. *Tee IFD1 data is totally different.*
-
-// 	fmt.Printf("\n")
-// 	fmt.Printf("IB TO WRITE:\n")
-// 	fmt.Printf("\n")
-
-// 	rootIb.Dump()
+	exifBt := rootIb.Tags()[i]
+	exifIb := exifBt.Value().Ib()
 
 
-// 	err = s.SetExif(rootIb)
-// 	log.PanicIf(err)
+	uc := exif.TagUnknownType_9298_UserComment{
+	    EncodingType: exif.TagUnknownType_9298_UserComment_Encoding_ASCII,
+	    EncodingBytes: []byte("TEST COMMENT"),
+	}
+
+	err = exifIb.SetFromConfigWithName("UserComment", uc)
+	log.PanicIf(err)
 
 
-// // TODO(dustin): !! Confirm tags after.
-//  	_, s, tags, err = sl.DumpExif()
-//  	log.PanicIf(err)
+    // Update the exif segment.
 
-//  	s = s
+	err = s.SetExif(rootIb)
+	log.PanicIf(err)
 
-// 	fmt.Printf("\n")
-// 	fmt.Printf("AFTER:\n")
-// 	fmt.Printf("\n")
+    b := new(bytes.Buffer)
 
-// 	for i, tag := range tags {
-// 		fmt.Printf("%02d: %s\n", i, tag)
-// 	}
+	err = sl.Write(b)
+	log.PanicIf(err)
 
-// // TODO(dustin): !! Use native/third-party EXIF support to test?
+    recoveredBytes := b.Bytes()
 
-// 	f, err := os.Create("/tmp/updated_exif.jpg")
-// 	log.PanicIf(err)
 
-// 	defer f.Close()
+    // Parse the re-encoded JPEG data and validate.
 
-// 	err = sl.Write(f)
-// 	log.PanicIf(err)
-// }
+    recoveredSl, err := ParseBytesStructure(recoveredBytes)
+    log.PanicIf(err)
+
+    rootIfd, _, err := recoveredSl.Exif()
+    log.PanicIf(err)
+
+    exifIfd, err := rootIfd.ChildWithIfdIdentity(exif.ExifIi)
+    log.PanicIf(err)
+
+    results, err := exifIfd.FindTagWithName("UserComment")
+    log.PanicIf(err)
+
+    ucIte := results[0]
+
+    if ucIte.TagId != 0x9286 {
+        t.Fatalf("tag-ID not correct")
+    }
+
+    recoveredValueBytes, err := exifIfd.TagValueBytes(ucIte)
+    log.PanicIf(err)
+
+    expectedValueBytes := make([]byte, 0)
+
+    expectedValueBytes = append(expectedValueBytes, []byte{ 'A', 'S', 'C', 'I', 'I', 0, 0, 0 }...)
+    expectedValueBytes = append(expectedValueBytes, []byte("TEST COMMENT")...)
+
+    if bytes.Compare(recoveredValueBytes, expectedValueBytes) != 0 {
+        t.Fatalf("Recovered UserComment does not have the right value: %v != %v", recoveredValueBytes, expectedValueBytes)
+    }
+}
+
+func ExampleUpdateUnknownTag() {
+    filepath := path.Join(assetsPath, testImageRelFilepath)
+
+    // Parse the image.
+
+    sl, err := ParseFileStructure(filepath)
+    log.PanicIf(err)
+
+
+    // Update the UserComment tag.
+
+    _, s, rootIb, err := sl.ConstructExifBuilder()
+    log.PanicIf(err)
+
+    i, err := rootIb.Find(exif.IfdExifId)
+    log.PanicIf(err)
+
+    exifBt := rootIb.Tags()[i]
+    exifIb := exifBt.Value().Ib()
+
+
+    uc := exif.TagUnknownType_9298_UserComment{
+        EncodingType: exif.TagUnknownType_9298_UserComment_Encoding_ASCII,
+        EncodingBytes: []byte("TEST COMMENT"),
+    }
+
+    err = exifIb.SetFromConfigWithName("UserComment", uc)
+    log.PanicIf(err)
+
+
+    // Update the exif segment.
+
+    err = s.SetExif(rootIb)
+    log.PanicIf(err)
+
+    b := new(bytes.Buffer)
+
+    err = sl.Write(b)
+    log.PanicIf(err)
+
+    updatedImageBytes := b.Bytes()
+    updatedImageBytes = updatedImageBytes
+    // Output:
+}
+
 
 func init() {
 	goPath := os.Getenv("GOPATH")

@@ -163,6 +163,10 @@ func GetFlatExifData(exifData []byte) (exifTags []ExifTag, err error) {
         for _, childIfd := range ifd.Children {
             q = append(q, childIfd)
         }
+
+        if ifd.NextIfd != nil {
+            q = append(q, ifd.NextIfd)
+        }
     }
 
     return exifTags, nil
