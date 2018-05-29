@@ -259,7 +259,7 @@ func Test_SegmentList__UpdateExif(t *testing.T) {
     }
 }
 
-func ExampleUpdateUnknownTag() {
+func ExampleSegment_SetExif() {
     filepath := path.Join(assetsPath, testImageRelFilepath)
 
     // Parse the image.
