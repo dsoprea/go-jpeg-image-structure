@@ -27,13 +27,14 @@ type segmentResult struct {
     MarkerName string `json:"marker_name"`
     Offset int `json:"offset"`
     Data []byte `json:"data"`
+    Length int `json:"length"`
 }
 
 
 type segmentIndexItem struct {
-    MarkerName string `json:"marker_name"`
     Offset int `json:"offset"`
     Data []byte `json:"data"`
+    Length int `json:"length"`
 }
 
 
@@ -73,7 +74,7 @@ func main() {
     log.PanicIf(err)
 
     segments := make([]segmentResult, len(sl.Segments()))
-    segmentIndex := make(map[byte][]segmentIndexItem)
+    segmentIndex := make(map[string][]segmentIndexItem)
 
     for i, s := range sl.Segments() {
         var data []byte
@@ -85,29 +86,30 @@ func main() {
             MarkerId: s.MarkerId,
             MarkerName: s.MarkerName,
             Offset: s.Offset,
+            Length: len(s.Data),
             Data: data,
         }
 
         sii := segmentIndexItem{
-            MarkerName: s.MarkerName,
             Offset: s.Offset,
+            Length: len(s.Data),
             Data: data,
         }
 
-        if grouped, found := segmentIndex[s.MarkerId]; found == true {
-            segmentIndex[s.MarkerId] = append(grouped, sii)
+        if grouped, found := segmentIndex[s.MarkerName]; found == true {
+            segmentIndex[s.MarkerName] = append(grouped, sii)
         } else {
-            segmentIndex[s.MarkerId] = []segmentIndexItem { sii }
+            segmentIndex[s.MarkerName] = []segmentIndexItem { sii }
         }
     }
 
     if options.JsonAsList == true {
-        raw, err := json.MarshalIndent(segments, "  ", "  ")
+        raw, err := json.MarshalIndent(segments, "", "  ")
         log.PanicIf(err)
 
         fmt.Println(string(raw))
     } else if options.JsonAsObject == true {
-        raw, err := json.MarshalIndent(segmentIndex, "  ", "  ")
+        raw, err := json.MarshalIndent(segmentIndex, "", "  ")
         log.PanicIf(err)
 
         fmt.Println(string(raw))

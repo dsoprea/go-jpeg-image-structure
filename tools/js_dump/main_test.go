@@ -92,26 +92,84 @@ func TestMain_Json_NoData(t *testing.T) {
     cmd.Stderr = b
 
     err := cmd.Run()
-    raw := b.Bytes()
+    actual := b.String()
 
     if err != nil {
-        fmt.Printf(string(raw))
+        fmt.Println(actual)
         panic(err)
     }
 
-    result := make([]JsonResultJpegSegmentListItem, 0)
+    expected := `[
+  {
+    "marker_id": 216,
+    "marker_name": "SOI",
+    "offset": 0,
+    "data": null,
+    "length": 0
+  },
+  {
+    "marker_id": 225,
+    "marker_name": "APP1",
+    "offset": 2,
+    "data": null,
+    "length": 32942
+  },
+  {
+    "marker_id": 225,
+    "marker_name": "APP1",
+    "offset": 32948,
+    "data": null,
+    "length": 2558
+  },
+  {
+    "marker_id": 219,
+    "marker_name": "DQT",
+    "offset": 35510,
+    "data": null,
+    "length": 130
+  },
+  {
+    "marker_id": 192,
+    "marker_name": "SOF0",
+    "offset": 35644,
+    "data": null,
+    "length": 15
+  },
+  {
+    "marker_id": 196,
+    "marker_name": "DHT",
+    "offset": 35663,
+    "data": null,
+    "length": 416
+  },
+  {
+    "marker_id": 218,
+    "marker_name": "SOS",
+    "offset": 36083,
+    "data": null,
+    "length": 0
+  },
+  {
+    "marker_id": 0,
+    "marker_name": "!SCANDATA",
+    "offset": 36085,
+    "data": null,
+    "length": 5554296
+  },
+  {
+    "marker_id": 217,
+    "marker_name": "EOI",
+    "offset": 5590381,
+    "data": null,
+    "length": 0
+  }
+]
+`
 
-    err = json.Unmarshal(raw, &result)
-    log.PanicIf(err)
+    if actual != expected {
+        fmt.Printf("ACTUAL:\n%s\n\nEXPECTED:\n%s\n", actual, expected)
 
-    if len(result) != 9 {
-        t.Fatalf("JPEG segment count not correct: (%d)", len(result))
-    }
-
-    for _, s := range result {
-        if s.Data != nil {
-            t.Fatalf("No segments were supposed to have data but do.")
-        }
+        t.Fatalf("output not expected.")
     }
 }
 
@@ -128,23 +186,83 @@ func TestMain_Json_NoData_SegmentIndex(t *testing.T) {
     cmd.Stderr = b
 
     err := cmd.Run()
-    raw := b.Bytes()
+    actual := b.String()
 
     if err != nil {
-        fmt.Printf("RAW:\n%s\n", string(raw))
+        fmt.Println(actual)
         panic(err)
     }
 
-    result := make(map[string][]JsonResultJpegSegmentIndexItem)
-
-    err = json.Unmarshal(raw, &result)
-    log.PanicIf(err)
-
-    if result == nil || len(result) == 0 {
-        t.Fatalf("Segment index not returned/populated.")
+    expected := `{
+  "!SCANDATA": [
+    {
+      "offset": 36085,
+      "data": null,
+      "length": 5554296
     }
+  ],
+  "APP1": [
+    {
+      "offset": 2,
+      "data": null,
+      "length": 32942
+    },
+    {
+      "offset": 32948,
+      "data": null,
+      "length": 2558
+    }
+  ],
+  "DHT": [
+    {
+      "offset": 35663,
+      "data": null,
+      "length": 416
+    }
+  ],
+  "DQT": [
+    {
+      "offset": 35510,
+      "data": null,
+      "length": 130
+    }
+  ],
+  "EOI": [
+    {
+      "offset": 5590381,
+      "data": null,
+      "length": 0
+    }
+  ],
+  "SOF0": [
+    {
+      "offset": 35644,
+      "data": null,
+      "length": 15
+    }
+  ],
+  "SOI": [
+    {
+      "offset": 0,
+      "data": null,
+      "length": 0
+    }
+  ],
+  "SOS": [
+    {
+      "offset": 36083,
+      "data": null,
+      "length": 0
+    }
+  ]
+}
+`
 
-// TODO(dustin): !! Test actual segments returned in lists and indexes.
+    if actual != expected {
+        fmt.Printf("ACTUAL:\n%s\n\nEXPECTED:\n%s\n", actual, expected)
+
+        t.Fatalf("output not expected.")
+    }
 }
 
 func TestMain_Json_Data(t *testing.T) {
