@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"reflect"
+    "fmt"
 
 	"io/ioutil"
 
@@ -304,6 +305,69 @@ func ExampleSegment_SetExif() {
     // Output:
 }
 
+func Test_SegmentList__FindExif(t *testing.T) {
+    defer func() {
+        if state := recover(); state != nil {
+            err := log.Wrap(state.(error))
+            log.PrintErrorf(err, "Test failure.")
+        }
+    }()
+
+    imageFilepath := path.Join(assetsPath, testImageRelFilepath)
+
+    // Parse the image.
+
+    sl, err := ParseFileStructure(imageFilepath)
+    log.PanicIf(err)
+
+    segmentNumber, s, err := sl.FindExif()
+    log.PanicIf(err)
+
+    if segmentNumber != 1 {
+        t.Fatalf("exif not found in right position: (%d)", segmentNumber)
+    }
+
+    exifFilepath := fmt.Sprintf("%s.exif", imageFilepath)
+
+    expectedExifBytes, err := ioutil.ReadFile(exifFilepath)
+    log.PanicIf(err)
+
+    if bytes.Compare(s.Data[6:], expectedExifBytes) != 0 {
+        t.Fatalf("exif data not correct")
+    }
+}
+
+func Test_SegmentList__Exif(t *testing.T) {
+    defer func() {
+        if state := recover(); state != nil {
+            err := log.Wrap(state.(error))
+            log.PrintErrorf(err, "Test failure.")
+        }
+    }()
+
+    imageFilepath := path.Join(assetsPath, testImageRelFilepath)
+
+    // Parse the image.
+
+    sl, err := ParseFileStructure(imageFilepath)
+    log.PanicIf(err)
+
+    rootIfd, s, err := sl.Exif()
+    log.PanicIf(err)
+
+    if rootIfd.Ii != exif.RootIi {
+        t.Fatalf("root IFD does not have correct identity")
+    }
+
+    exifFilepath := fmt.Sprintf("%s.exif", imageFilepath)
+
+    expectedExifBytes, err := ioutil.ReadFile(exifFilepath)
+    log.PanicIf(err)
+
+    if bytes.Compare(s.Data[6:], expectedExifBytes) != 0 {
+        t.Fatalf("exif data not correct")
+    }
+}
 
 func init() {
 	goPath := os.Getenv("GOPATH")

@@ -147,6 +147,8 @@ var (
 		MARKER_SOF14: "SOF14",
 		MARKER_SOF15: "SOF15",
 	}
+
+	ExifPrefix = []byte { 'E', 'x', 'i', 'f', 0, 0 }
 )
 
 var (
@@ -303,7 +305,7 @@ func (sl *SegmentList) FindExif() (index int, segment *Segment, err error) {
             continue
         }
 
-        if exif.IsExif(s.Data) == true {
+        if bytes.Compare(s.Data[:6], ExifPrefix) == 0 {
         	return i, s, nil
         }
     }
