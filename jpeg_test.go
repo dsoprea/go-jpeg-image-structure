@@ -210,7 +210,7 @@ func Test_SegmentList__UpdateExif(t *testing.T) {
 	    EncodingBytes: []byte("TEST COMMENT"),
 	}
 
-	err = exifIb.SetFromConfigWithName("UserComment", uc)
+	err = exifIb.SetStandardWithName("UserComment", uc)
 	log.PanicIf(err)
 
 
@@ -286,7 +286,7 @@ func ExampleSegment_SetExif() {
         EncodingBytes: []byte("TEST COMMENT"),
     }
 
-    err = exifIb.SetFromConfigWithName("UserComment", uc)
+    err = exifIb.SetStandardWithName("UserComment", uc)
     log.PanicIf(err)
 
 

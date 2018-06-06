@@ -318,8 +318,7 @@ func (sl *SegmentList) FindExif() (index int, segment *Segment, err error) {
     return -1, nil, nil
 }
 
-// ConstructExifBuilder returns an `exif.IfdBuilder` instance (needed for
-// modifying) preloaded with all existing tags.
+// Exif returns an `exif.Ifd` instance for the EXIF data we currently have.
 func (sl *SegmentList) Exif() (rootIfd *exif.Ifd, s *Segment, err error) {
 	defer func() {
 		if state := recover(); state != nil {
