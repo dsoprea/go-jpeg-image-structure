@@ -92,9 +92,7 @@ func ParseExifData(exifData []byte) (rootIfd *exif.Ifd, err error) {
         }
     }()
 
-    e := exif.NewExif()
-
-    _, index, err := e.Collect(exifData)
+    _, index, err := exif.Collect(exifData)
     log.PanicIf(err)
 
     return index.RootIfd, nil

@@ -195,7 +195,9 @@ func (s *Segment) SetExif(ib *exif.IfdBuilder) (err error) {
     exifData, err := ibe.EncodeToExif(ib)
     log.PanicIf(err)
 
-    s.Data = exifData
+    s.Data = make([]byte, len(ExifPrefix) + len(exifData))
+    copy(s.Data[0:], ExifPrefix)
+    copy(s.Data[len(ExifPrefix):], exifData)
 
  	return nil
 }
@@ -305,7 +307,7 @@ func (sl *SegmentList) FindExif() (index int, segment *Segment, err error) {
             continue
         }
 
-        if bytes.Compare(s.Data[:6], ExifPrefix) == 0 {
+        if bytes.Compare(s.Data[:len(ExifPrefix)], ExifPrefix) == 0 {
         	return i, s, nil
         }
     }
@@ -325,14 +327,10 @@ func (sl *SegmentList) Exif() (rootIfd *exif.Ifd, s *Segment, err error) {
 		}
 	}()
 
-// TODO(dustin): !! Add test.
-
 	_, s, err = sl.FindExif()
 	log.PanicIf(err)
 
-    e := exif.NewExif()
-
-    _, index, err := e.Collect(s.Data)
+    _, index, err := exif.Collect(s.Data[len(ExifPrefix):])
     log.PanicIf(err)
 
     return index.RootIfd, s, nil
@@ -350,7 +348,7 @@ func (sl *SegmentList) ConstructExifBuilder() (segmentIndex int, s *Segment, roo
 	rootIfd, s, err := sl.Exif()
 	log.PanicIf(err)
 
-    itevr := exif.NewIfdTagEntryValueResolver(s.Data, rootIfd.ByteOrder)
+    itevr := exif.NewIfdTagEntryValueResolver(s.Data[len(ExifPrefix):], rootIfd.ByteOrder)
 	ib := exif.NewIfdBuilderFromExistingChain(rootIfd, itevr)
 
     return segmentIndex, s, ib, nil
@@ -367,7 +365,7 @@ func (sl *SegmentList) DumpExif() (segmentIndex int, segment *Segment, exifTags 
 	segmentIndex, s, err := sl.FindExif()
 	log.PanicIf(err)
 
-    exifTags, err = GetFlatExifData(s.Data)
+    exifTags, err = GetFlatExifData(s.Data[len(ExifPrefix):])
     log.PanicIf(err)
 
     return segmentIndex, s, exifTags, nil
