@@ -195,7 +195,7 @@ func Test_Segment__SetExif(t *testing.T) {
 
     // Update the UserComment tag.
 
-	_, s, rootIb, err := sl.ConstructExifBuilder()
+	rootIb, err := sl.ConstructExifBuilder()
 	log.PanicIf(err)
 
 	i, err := rootIb.Find(exif.IfdExifId)
@@ -215,6 +215,9 @@ func Test_Segment__SetExif(t *testing.T) {
 
 
     // Update the exif segment.
+
+    _, s, err := sl.FindExif()
+    log.PanicIf(err)
 
 	err = s.SetExif(rootIb)
 	log.PanicIf(err)
@@ -318,7 +321,7 @@ func Test_SegmentList__SetExif(t *testing.T) {
     }
 }
 
-func ExampleSegment_SetExif() {
+func ExampleSegmentList_SetExif() {
     filepath := path.Join(assetsPath, testImageRelFilepath)
 
     // Parse the image.
@@ -329,7 +332,7 @@ func ExampleSegment_SetExif() {
 
     // Update the UserComment tag.
 
-    _, s, rootIb, err := sl.ConstructExifBuilder()
+    rootIb, err := sl.ConstructExifBuilder()
     log.PanicIf(err)
 
     i, err := rootIb.Find(exif.IfdExifId)
@@ -350,7 +353,7 @@ func ExampleSegment_SetExif() {
 
     // Update the exif segment.
 
-    err = s.SetExif(rootIb)
+    err = sl.SetExif(rootIb)
     log.PanicIf(err)
 
     b := new(bytes.Buffer)
@@ -410,7 +413,7 @@ func Test_SegmentList__Exif(t *testing.T) {
     sl, err := ParseFileStructure(imageFilepath)
     log.PanicIf(err)
 
-    rootIfd, s, err := sl.Exif()
+    rootIfd, data, err := sl.Exif()
     log.PanicIf(err)
 
     if rootIfd.Ii != exif.RootIi {
@@ -422,7 +425,7 @@ func Test_SegmentList__Exif(t *testing.T) {
     expectedExifBytes, err := ioutil.ReadFile(exifFilepath)
     log.PanicIf(err)
 
-    if bytes.Compare(s.Data[6:], expectedExifBytes) != 0 {
+    if bytes.Compare(data[6:], expectedExifBytes) != 0 {
         t.Fatalf("exif data not correct")
     }
 }

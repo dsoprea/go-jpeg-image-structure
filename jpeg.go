@@ -319,38 +319,38 @@ func (sl *SegmentList) FindExif() (index int, segment *Segment, err error) {
 }
 
 // Exif returns an `exif.Ifd` instance for the EXIF data we currently have.
-func (sl *SegmentList) Exif() (rootIfd *exif.Ifd, s *Segment, err error) {
+func (sl *SegmentList) Exif() (rootIfd *exif.Ifd, data []byte, err error) {
 	defer func() {
 		if state := recover(); state != nil {
 			err = log.Wrap(state.(error))
 		}
 	}()
 
-	_, s, err = sl.FindExif()
+	_, s, err := sl.FindExif()
 	log.PanicIf(err)
 
     _, index, err := exif.Collect(s.Data[len(ExifPrefix):])
     log.PanicIf(err)
 
-    return index.RootIfd, s, nil
+    return index.RootIfd, s.Data, nil
 }
 
 // ConstructExifBuilder returns an `exif.IfdBuilder` instance (needed for
 // modifying) preloaded with all existing tags.
-func (sl *SegmentList) ConstructExifBuilder() (segmentIndex int, s *Segment, rootIb *exif.IfdBuilder, err error) {
+func (sl *SegmentList) ConstructExifBuilder() (rootIb *exif.IfdBuilder, err error) {
 	defer func() {
 		if state := recover(); state != nil {
 			err = log.Wrap(state.(error))
 		}
 	}()
 
-	rootIfd, s, err := sl.Exif()
+	rootIfd, data, err := sl.Exif()
 	log.PanicIf(err)
 
-    itevr := exif.NewIfdTagEntryValueResolver(s.Data[len(ExifPrefix):], rootIfd.ByteOrder)
+    itevr := exif.NewIfdTagEntryValueResolver(data[len(ExifPrefix):], rootIfd.ByteOrder)
 	ib := exif.NewIfdBuilderFromExistingChain(rootIfd, itevr)
 
-    return segmentIndex, s, ib, nil
+    return ib, nil
 }
 
 // DumpExif returns an unstructured list of tags (useful when just reviewing).
