@@ -9,7 +9,15 @@ import (
     "github.com/dsoprea/go-logging"
 )
 
-func ParseSegments(r io.Reader, size int) (sl *SegmentList, err error) {
+
+type JpegMediaParser struct {
+}
+
+func NewJpegMediaParser() *JpegMediaParser {
+    return new(JpegMediaParser)
+}
+
+func (jmp *JpegMediaParser) Parse(r io.Reader, size int) (sl *SegmentList, err error) {
     defer func() {
         if state := recover(); state != nil {
             err = log.Wrap(state.(error))
@@ -32,7 +40,7 @@ func ParseSegments(r io.Reader, size int) (sl *SegmentList, err error) {
     return js.Segments(), nil
 }
 
-func ParseFileStructure(filepath string) (sl *SegmentList, err error) {
+func (jmp *JpegMediaParser) ParseFile(filepath string) (sl *SegmentList, err error) {
     defer func() {
         if state := recover(); state != nil {
             err = log.Wrap(state.(error))
@@ -47,13 +55,13 @@ func ParseFileStructure(filepath string) (sl *SegmentList, err error) {
 
     size := stat.Size()
 
-    sl, err = ParseSegments(f, int(size))
+    sl, err = jmp.Parse(f, int(size))
     log.PanicIf(err)
 
     return sl, nil
 }
 
-func ParseBytesStructure(data []byte) (sl *SegmentList, err error) {
+func (jmp *JpegMediaParser) ParseBytes(data []byte) (sl *SegmentList, err error) {
     defer func() {
         if state := recover(); state != nil {
             err = log.Wrap(state.(error))
@@ -62,8 +70,21 @@ func ParseBytesStructure(data []byte) (sl *SegmentList, err error) {
 
     b := bytes.NewBuffer(data)
 
-    sl, err = ParseSegments(b, len(data))
+    sl, err = jmp.Parse(b, len(data))
     log.PanicIf(err)
 
     return sl, nil
+}
+
+func (jmp *JpegMediaParser) LooksLikeFormat(data []byte) bool {
+    if len(data) < 4 {
+        return false
+    }
+
+    len_ := len(data)
+    if data[0] != 0xff || data[1] != MARKER_SOI || data[len_ - 2] != 0xff || data[len_ - 1] != MARKER_EOI {
+        return false
+    }
+
+    return true
 }

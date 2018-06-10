@@ -169,16 +169,3 @@ func GetFlatExifData(exifData []byte) (exifTags []ExifTag, err error) {
 
     return exifTags, nil
 }
-
-func IsJpeg(data []byte) bool {
-    if len(data) < 4 {
-        return false
-    }
-
-    len_ := len(data)
-    if data[0] != 0xff || data[1] != MARKER_SOI || data[len_ - 2] != 0xff || data[len_ - 1] != MARKER_EOI {
-        return false
-    }
-
-    return true
-}

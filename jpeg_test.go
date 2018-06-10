@@ -16,7 +16,6 @@ import (
 )
 
 var (
-	assetsPath           = ""
 	testImageRelFilepath = "NDM_8901.jpg"
 )
 
@@ -128,7 +127,9 @@ func Test_SegmentList_Write(t *testing.T) {
 
     r := bytes.NewBuffer(data)
 
-    sl, err := ParseSegments(r, len(data))
+    jmp := NewJpegMediaParser()
+
+    sl, err := jmp.Parse(r, len(data))
     log.PanicIf(err)
 
     b := new(bytes.Buffer)
@@ -153,6 +154,8 @@ func Test_SegmentList_Write(t *testing.T) {
 
 //     filepath := path.Join(assetsPath, testImageRelFilepath)
 
+//     jmp := NewJpegMediaParser()
+
 //     sl, err := ParseFileStructure(filepath)
 //     log.PanicIf(err)
 
@@ -171,7 +174,7 @@ func Test_SegmentList_Write(t *testing.T) {
 // 	log.PanicIf(err)
 // }
 
-func Test_Segment__SetExif(t *testing.T) {
+func Test_Segment_SetExif(t *testing.T) {
     defer func() {
         if state := recover(); state != nil {
             err := log.Wrap(state.(error))
@@ -189,7 +192,9 @@ func Test_Segment__SetExif(t *testing.T) {
 
     // Parse the image.
 
-    sl, err := ParseFileStructure(filepath)
+    jmp := NewJpegMediaParser()
+
+    sl, err := jmp.ParseFile(filepath)
     log.PanicIf(err)
 
 
@@ -232,7 +237,7 @@ func Test_Segment__SetExif(t *testing.T) {
 
     // Parse the re-encoded JPEG data and validate.
 
-    recoveredSl, err := ParseBytesStructure(recoveredBytes)
+    recoveredSl, err := jmp.ParseBytes(recoveredBytes)
     log.PanicIf(err)
 
     rootIfd, _, err := recoveredSl.Exif()
@@ -263,7 +268,7 @@ func Test_Segment__SetExif(t *testing.T) {
     }
 }
 
-func Test_SegmentList__SetExif(t *testing.T) {
+func Test_SegmentList_SetExif(t *testing.T) {
     defer func() {
         if state := recover(); state != nil {
             err := log.Wrap(state.(error))
@@ -326,7 +331,9 @@ func ExampleSegmentList_SetExif() {
 
     // Parse the image.
 
-    sl, err := ParseFileStructure(filepath)
+    jmp := NewJpegMediaParser()
+
+    sl, err := jmp.ParseFile(filepath)
     log.PanicIf(err)
 
 
@@ -366,7 +373,7 @@ func ExampleSegmentList_SetExif() {
     // Output:
 }
 
-func Test_SegmentList__FindExif(t *testing.T) {
+func Test_SegmentList_FindExif(t *testing.T) {
     defer func() {
         if state := recover(); state != nil {
             err := log.Wrap(state.(error))
@@ -378,7 +385,9 @@ func Test_SegmentList__FindExif(t *testing.T) {
 
     // Parse the image.
 
-    sl, err := ParseFileStructure(imageFilepath)
+    jmp := NewJpegMediaParser()
+
+    sl, err := jmp.ParseFile(imageFilepath)
     log.PanicIf(err)
 
     segmentNumber, s, err := sl.FindExif()
@@ -398,7 +407,7 @@ func Test_SegmentList__FindExif(t *testing.T) {
     }
 }
 
-func Test_SegmentList__Exif(t *testing.T) {
+func Test_SegmentList_Exif(t *testing.T) {
     defer func() {
         if state := recover(); state != nil {
             err := log.Wrap(state.(error))
@@ -410,7 +419,9 @@ func Test_SegmentList__Exif(t *testing.T) {
 
     // Parse the image.
 
-    sl, err := ParseFileStructure(imageFilepath)
+    jmp := NewJpegMediaParser()
+
+    sl, err := jmp.ParseFile(imageFilepath)
     log.PanicIf(err)
 
     rootIfd, data, err := sl.Exif()
@@ -430,11 +441,25 @@ func Test_SegmentList__Exif(t *testing.T) {
     }
 }
 
-func init() {
-	goPath := os.Getenv("GOPATH")
-	if goPath == "" {
-		log.Panicf("GOPATH is empty")
-	}
+func TestSegmentList_Validate(t *testing.T) {
+    filepath := path.Join(assetsPath, testImageRelFilepath)
 
-	assetsPath = path.Join(goPath, "src", "github.com", "dsoprea", "go-jpeg-image-structure", "assets")
+    data, err := ioutil.ReadFile(filepath)
+    log.PanicIf(err)
+
+    segments := []*Segment {
+        &Segment{
+            MarkerId: 0x0,
+            Offset: 0x0,
+        },
+    }
+
+    sl := NewSegmentList(segments)
+
+    err = sl.Validate(data)
+    if err == nil {
+        t.Fatalf("Expected error about missing minimum segments.")
+    } else if err.Error() != "minimum segments not found" {
+        log.Panic(err)
+    }
 }

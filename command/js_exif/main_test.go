@@ -148,5 +148,5 @@ func init() {
     goPath := os.Getenv("GOPATH")
 
     assetsPath = path.Join(goPath, "src", "github.com", "dsoprea", "go-jpeg-image-structure", "assets")
-    appFilepath = path.Join(goPath, "src", "github.com", "dsoprea", "go-jpeg-image-structure", "tools", "js_exif", "main.go")
+    appFilepath = path.Join(goPath, "src", "github.com", "dsoprea", "go-jpeg-image-structure", "command", "js_exif", "main.go")
 }

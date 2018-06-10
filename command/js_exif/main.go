@@ -52,7 +52,9 @@ func main() {
         log.PanicIf(err)
     }
 
-    sl, err := jpegstructure.ParseBytesStructure(data)
+    jmp := jpegstructure.NewJpegMediaParser()
+
+    sl, err := jmp.ParseBytes(data)
     log.PanicIf(err)
 
     _, _, et, err := sl.DumpExif()
