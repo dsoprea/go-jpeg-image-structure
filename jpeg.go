@@ -372,19 +372,15 @@ func (sl *SegmentList) DumpExif() (segmentIndex int, segment *Segment, exifTags 
 
 // SetExif encodes and sets EXIF data into the given segment. If `index` is -1,
 // append a new segment.
-func (sl *SegmentList) SetExif(index int, markerId byte, ib *exif.IfdBuilder) (err error) {
+func (sl *SegmentList) SetExif(index int, ib *exif.IfdBuilder) (err error) {
 	defer func() {
 		if state := recover(); state != nil {
 			err = log.Wrap(state.(error))
 		}
 	}()
 
-    if markerId < MARKER_APP0 || markerId > MARKER_APP15 {
-		log.Panicf("Marker-ID must not be between (0x%02x) and (0x%02x) for EXIF data: (0x%02x)", MARKER_APP0, MARKER_APP15, markerId)
-    }
-
     s := &Segment{
-		MarkerId: markerId,
+		MarkerId: MARKER_APP1,
     }
 
     err = s.SetExif(ib)

@@ -143,35 +143,35 @@ func Test_SegmentList_Write(t *testing.T) {
 	}
 }
 
-func Test_SegmentList_WriteReconstitutedExif(t *testing.T) {
-    defer func() {
-        if state := recover(); state != nil {
-            err := log.Wrap(state.(error))
-            log.PrintErrorf(err, "Test failure.")
-        }
-    }()
+// func Test_SegmentList_WriteReconstitutedExif(t *testing.T) {
+//     defer func() {
+//         if state := recover(); state != nil {
+//             err := log.Wrap(state.(error))
+//             log.PrintErrorf(err, "Test failure.")
+//         }
+//     }()
 
-    filepath := path.Join(assetsPath, testImageRelFilepath)
+//     filepath := path.Join(assetsPath, testImageRelFilepath)
 
-    sl, err := ParseFileStructure(filepath)
-    log.PanicIf(err)
+//     sl, err := ParseFileStructure(filepath)
+//     log.PanicIf(err)
 
-	_, s, rootIb, err := sl.ConstructExifBuilder()
-	log.PanicIf(err)
+// 	_, s, rootIb, err := sl.ConstructExifBuilder()
+// 	log.PanicIf(err)
 
-	err = s.SetExif(rootIb)
-	log.PanicIf(err)
+// 	err = s.SetExif(rootIb)
+// 	log.PanicIf(err)
 
-	f, err := os.Create("/tmp/no_change_exif.jpg")
-	log.PanicIf(err)
+// 	f, err := os.Create("/tmp/no_change_exif.jpg")
+// 	log.PanicIf(err)
 
-	defer f.Close()
+// 	defer f.Close()
 
-	err = sl.Write(f)
-	log.PanicIf(err)
-}
+// 	err = sl.Write(f)
+// 	log.PanicIf(err)
+// }
 
-func Test_SegmentList__UpdateExif(t *testing.T) {
+func Test_Segment__SetExif(t *testing.T) {
     defer func() {
         if state := recover(); state != nil {
             err := log.Wrap(state.(error))
@@ -223,6 +223,93 @@ func Test_SegmentList__UpdateExif(t *testing.T) {
 
 	err = sl.Write(b)
 	log.PanicIf(err)
+
+    recoveredBytes := b.Bytes()
+
+
+    // Parse the re-encoded JPEG data and validate.
+
+    recoveredSl, err := ParseBytesStructure(recoveredBytes)
+    log.PanicIf(err)
+
+    rootIfd, _, err := recoveredSl.Exif()
+    log.PanicIf(err)
+
+    exifIfd, err := rootIfd.ChildWithIfdIdentity(exif.ExifIi)
+    log.PanicIf(err)
+
+    results, err := exifIfd.FindTagWithName("UserComment")
+    log.PanicIf(err)
+
+    ucIte := results[0]
+
+    if ucIte.TagId != 0x9286 {
+        t.Fatalf("tag-ID not correct")
+    }
+
+    recoveredValueBytes, err := exifIfd.TagValueBytes(ucIte)
+    log.PanicIf(err)
+
+    expectedValueBytes := make([]byte, 0)
+
+    expectedValueBytes = append(expectedValueBytes, []byte{ 'A', 'S', 'C', 'I', 'I', 0, 0, 0 }...)
+    expectedValueBytes = append(expectedValueBytes, []byte("TEST COMMENT")...)
+
+    if bytes.Compare(recoveredValueBytes, expectedValueBytes) != 0 {
+        t.Fatalf("Recovered UserComment does not have the right value: %v != %v", recoveredValueBytes, expectedValueBytes)
+    }
+}
+
+func Test_SegmentList__SetExif(t *testing.T) {
+    defer func() {
+        if state := recover(); state != nil {
+            err := log.Wrap(state.(error))
+            log.PrintErrorf(err, "Test failure.")
+        }
+    }()
+
+    filepath := path.Join(assetsPath, testImageRelFilepath)
+
+
+    // Parse the image.
+
+    sl, err := ParseFileStructure(filepath)
+    log.PanicIf(err)
+
+
+    // Update the UserComment tag.
+
+    _, _, rootIb, err := sl.ConstructExifBuilder()
+    log.PanicIf(err)
+
+    i, err := rootIb.Find(exif.IfdExifId)
+    log.PanicIf(err)
+
+    exifBt := rootIb.Tags()[i]
+    exifIb := exifBt.Value().Ib()
+
+
+    uc := exif.TagUnknownType_9298_UserComment{
+        EncodingType: exif.TagUnknownType_9298_UserComment_Encoding_ASCII,
+        EncodingBytes: []byte("TEST COMMENT"),
+    }
+
+    err = exifIb.SetStandardWithName("UserComment", uc)
+    log.PanicIf(err)
+
+
+    // Update the exif segment.
+
+    index, _, err := sl.FindExif()
+    log.PanicIf(err)
+
+    err = sl.SetExif(index, rootIb)
+    log.PanicIf(err)
+
+    b := new(bytes.Buffer)
+
+    err = sl.Write(b)
+    log.PanicIf(err)
 
     recoveredBytes := b.Bytes()
 
