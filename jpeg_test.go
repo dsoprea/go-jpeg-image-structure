@@ -268,82 +268,53 @@ func Test_SegmentList__SetExif(t *testing.T) {
         }
     }()
 
-    filepath := path.Join(assetsPath, testImageRelFilepath)
 
-
-    // Parse the image.
-
-    sl, err := ParseFileStructure(filepath)
-    log.PanicIf(err)
-
-
-    // Update the UserComment tag.
-
-    _, _, rootIb, err := sl.ConstructExifBuilder()
-    log.PanicIf(err)
-
-    i, err := rootIb.Find(exif.IfdExifId)
-    log.PanicIf(err)
-
-    exifBt := rootIb.Tags()[i]
-    exifIb := exifBt.Value().Ib()
-
-
-    uc := exif.TagUnknownType_9298_UserComment{
-        EncodingType: exif.TagUnknownType_9298_UserComment_Encoding_ASCII,
-        EncodingBytes: []byte("TEST COMMENT"),
+    initialSegments := []*Segment {
+        &Segment { MarkerId: 0 },
+        &Segment { MarkerId: 0 },
     }
 
-    err = exifIb.SetStandardWithName("UserComment", uc)
+    sl := NewSegmentList(initialSegments)
+
+    ib := exif.NewIfdBuilder(exif.RootIi, exif.TestDefaultByteOrder)
+    ib.AddStandardWithName("ProcessingSoftware", "some software")
+
+    err := sl.SetExif(ib)
     log.PanicIf(err)
 
+    exifSegment := sl.Segments()[2]
 
-    // Update the exif segment.
-
-    index, _, err := sl.FindExif()
-    log.PanicIf(err)
-
-    err = sl.SetExif(index, rootIb)
-    log.PanicIf(err)
-
-    b := new(bytes.Buffer)
-
-    err = sl.Write(b)
-    log.PanicIf(err)
-
-    recoveredBytes := b.Bytes()
-
-
-    // Parse the re-encoded JPEG data and validate.
-
-    recoveredSl, err := ParseBytesStructure(recoveredBytes)
-    log.PanicIf(err)
-
-    rootIfd, _, err := recoveredSl.Exif()
-    log.PanicIf(err)
-
-    exifIfd, err := rootIfd.ChildWithIfdIdentity(exif.ExifIi)
-    log.PanicIf(err)
-
-    results, err := exifIfd.FindTagWithName("UserComment")
-    log.PanicIf(err)
-
-    ucIte := results[0]
-
-    if ucIte.TagId != 0x9286 {
-        t.Fatalf("tag-ID not correct")
+    if exifSegment.MarkerId != MARKER_APP1 {
+        t.Fatalf("New segment is not correct.")
+    } else if len(exifSegment.Data) == 0 {
+        t.Fatalf("New segment does not have data.")
     }
 
-    recoveredValueBytes, err := exifIfd.TagValueBytes(ucIte)
+    originalSegment := exifSegment
+    originalData := exifSegment.Data
+
+
+    sl.Add(&Segment{ MarkerId: 0 })
+    sl.Add(&Segment{ MarkerId: 0 })
+
+    ib = exif.NewIfdBuilder(exif.RootIi, exif.TestDefaultByteOrder)
+    ib.AddStandardWithName("ProcessingSoftware", "some software2")
+
+    err = sl.SetExif(ib)
     log.PanicIf(err)
 
-    expectedValueBytes := make([]byte, 0)
+    exifSegment = sl.Segments()[2]
 
-    expectedValueBytes = append(expectedValueBytes, []byte{ 'A', 'S', 'C', 'I', 'I', 0, 0, 0 }...)
-    expectedValueBytes = append(expectedValueBytes, []byte("TEST COMMENT")...)
+    if len(sl.Segments()) != 5 {
+        t.Fatalf("Segment count not correct.")
+    } else if exifSegment != originalSegment {
+        // The data should change, not the segment itself.
 
-    if bytes.Compare(recoveredValueBytes, expectedValueBytes) != 0 {
-        t.Fatalf("Recovered UserComment does not have the right value: %v != %v", recoveredValueBytes, expectedValueBytes)
+        t.Fatalf("EXIF segment has been changed.")
+    } else if exifSegment.MarkerId != MARKER_APP1 {
+        t.Fatalf("EXIF segment is not correct.")
+    } else if bytes.Compare(exifSegment.Data, originalData) == 0 {
+        t.Fatalf("EXIF segment has not changed.")
     }
 }
 

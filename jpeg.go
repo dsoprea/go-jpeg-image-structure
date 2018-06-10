@@ -372,25 +372,28 @@ func (sl *SegmentList) DumpExif() (segmentIndex int, segment *Segment, exifTags 
 
 // SetExif encodes and sets EXIF data into the given segment. If `index` is -1,
 // append a new segment.
-func (sl *SegmentList) SetExif(index int, ib *exif.IfdBuilder) (err error) {
+func (sl *SegmentList) SetExif(ib *exif.IfdBuilder) (err error) {
 	defer func() {
 		if state := recover(); state != nil {
 			err = log.Wrap(state.(error))
 		}
 	}()
 
-    s := &Segment{
-		MarkerId: MARKER_APP1,
-    }
+	_, s, err := sl.FindExif()
+	if err != nil {
+		if log.Is(err, ErrNoExif) == false {
+			log.Panic(err)
+		}
+
+	    s = &Segment{
+			MarkerId: MARKER_APP1,
+	    }
+
+		sl.segments = append(sl.segments, s)
+	}
 
     err = s.SetExif(ib)
     log.PanicIf(err)
-
- 	if index == -1 {
- 		sl.segments = append(sl.segments, s)
- 	} else {
- 		sl.segments[index] = s
- 	}
 
  	return nil
 }
