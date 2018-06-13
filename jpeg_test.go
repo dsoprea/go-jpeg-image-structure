@@ -436,7 +436,7 @@ func Test_SegmentList_Exif(t *testing.T) {
     expectedExifBytes, err := ioutil.ReadFile(exifFilepath)
     log.PanicIf(err)
 
-    if bytes.Compare(data[6:], expectedExifBytes) != 0 {
+    if bytes.Compare(data, expectedExifBytes) != 0 {
         t.Fatalf("exif data not correct")
     }
 }

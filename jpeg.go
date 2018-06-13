@@ -329,10 +329,12 @@ func (sl *SegmentList) Exif() (rootIfd *exif.Ifd, data []byte, err error) {
 	_, s, err := sl.FindExif()
 	log.PanicIf(err)
 
-    _, index, err := exif.Collect(s.Data[len(ExifPrefix):])
+	rawExif := s.Data[len(ExifPrefix):]
+
+    _, index, err := exif.Collect(rawExif)
     log.PanicIf(err)
 
-    return index.RootIfd, s.Data, nil
+    return index.RootIfd, rawExif, nil
 }
 
 // ConstructExifBuilder returns an `exif.IfdBuilder` instance (needed for
