@@ -1,18 +1,18 @@
 package jpegstructure
 
 import (
-	"bytes"
 	"bufio"
-	"fmt"
+	"bytes"
 	"errors"
+	"fmt"
 	"io"
 
+	"crypto/sha1"
 	"encoding/binary"
 	"encoding/hex"
-	"crypto/sha1"
 
-	"github.com/dsoprea/go-logging"
 	"github.com/dsoprea/go-exif"
+	"github.com/dsoprea/go-logging"
 )
 
 const (
@@ -43,14 +43,14 @@ const (
 	MARKER_JPG = 0xc8
 	MARKER_DAC = 0xcc
 
-	MARKER_SOF0 = 0xc0
-	MARKER_SOF1 = 0xc1
-	MARKER_SOF2 = 0xc2
-	MARKER_SOF3 = 0xc3
-	MARKER_SOF5 = 0xc5
-	MARKER_SOF6 = 0xc6
-	MARKER_SOF7 = 0xc7
-	MARKER_SOF9 = 0xc9
+	MARKER_SOF0  = 0xc0
+	MARKER_SOF1  = 0xc1
+	MARKER_SOF2  = 0xc2
+	MARKER_SOF3  = 0xc3
+	MARKER_SOF5  = 0xc5
+	MARKER_SOF6  = 0xc6
+	MARKER_SOF7  = 0xc7
+	MARKER_SOF9  = 0xc9
 	MARKER_SOF10 = 0xca
 	MARKER_SOF11 = 0xcb
 	MARKER_SOF13 = 0xcd
@@ -105,42 +105,42 @@ var (
 		0x77: 4,
 	}
 
-	markerNames = map[byte]string {
-		MARKER_SOI: "SOI",
-		MARKER_EOI: "EOI",
-		MARKER_SOS: "SOS",
-		MARKER_SOD: "SOD",
-		MARKER_DQT: "DQT",
-		MARKER_APP0: "APP0",
-		MARKER_APP1: "APP1",
-		MARKER_APP2: "APP2",
-		MARKER_APP3: "APP3",
-		MARKER_APP4: "APP4",
-		MARKER_APP5: "APP5",
-		MARKER_APP6: "APP6",
-		MARKER_APP7: "APP7",
-		MARKER_APP8: "APP8",
+	markerNames = map[byte]string{
+		MARKER_SOI:   "SOI",
+		MARKER_EOI:   "EOI",
+		MARKER_SOS:   "SOS",
+		MARKER_SOD:   "SOD",
+		MARKER_DQT:   "DQT",
+		MARKER_APP0:  "APP0",
+		MARKER_APP1:  "APP1",
+		MARKER_APP2:  "APP2",
+		MARKER_APP3:  "APP3",
+		MARKER_APP4:  "APP4",
+		MARKER_APP5:  "APP5",
+		MARKER_APP6:  "APP6",
+		MARKER_APP7:  "APP7",
+		MARKER_APP8:  "APP8",
 		MARKER_APP10: "APP10",
 		MARKER_APP12: "APP12",
 		MARKER_APP13: "APP13",
 		MARKER_APP14: "APP14",
 		MARKER_APP15: "APP15",
-		MARKER_COM: "COM",
-		MARKER_CME: "CME",
-		MARKER_SIZ: "SIZ",
+		MARKER_COM:   "COM",
+		MARKER_CME:   "CME",
+		MARKER_SIZ:   "SIZ",
 
 		MARKER_DHT: "DHT",
 		MARKER_JPG: "JPG",
 		MARKER_DAC: "DAC",
 
-		MARKER_SOF0: "SOF0",
-		MARKER_SOF1: "SOF1",
-		MARKER_SOF2: "SOF2",
-		MARKER_SOF3: "SOF3",
-		MARKER_SOF5: "SOF5",
-		MARKER_SOF6: "SOF6",
-		MARKER_SOF7: "SOF7",
-		MARKER_SOF9: "SOF9",
+		MARKER_SOF0:  "SOF0",
+		MARKER_SOF1:  "SOF1",
+		MARKER_SOF2:  "SOF2",
+		MARKER_SOF3:  "SOF3",
+		MARKER_SOF5:  "SOF5",
+		MARKER_SOF6:  "SOF6",
+		MARKER_SOF7:  "SOF7",
+		MARKER_SOF9:  "SOF9",
 		MARKER_SOF10: "SOF10",
 		MARKER_SOF11: "SOF11",
 		MARKER_SOF13: "SOF13",
@@ -148,7 +148,7 @@ var (
 		MARKER_SOF15: "SOF15",
 	}
 
-	ExifPrefix = []byte { 'E', 'x', 'i', 'f', 0, 0 }
+	ExifPrefix = []byte{'E', 'x', 'i', 'f', 0, 0}
 )
 
 var (
@@ -156,8 +156,8 @@ var (
 )
 
 type SofSegment struct {
-	BitsPerSample byte
-	Width, Height uint16
+	BitsPerSample  byte
+	Width, Height  uint16
 	ComponentCount byte
 }
 
@@ -169,17 +169,15 @@ type SegmentVisitor interface {
 	HandleSegment(markerId byte, markerName string, counter int, lastIsScanData bool) error
 }
 
-
 type SofSegmentVisitor interface {
 	HandleSof(sof *SofSegment) error
 }
 
-
 type Segment struct {
-	MarkerId byte
+	MarkerId   byte
 	MarkerName string
-	Offset int
-	Data []byte
+	Offset     int
+	Data       []byte
 }
 
 // SetExif encodes and sets EXIF data into this segment.
@@ -190,16 +188,16 @@ func (s *Segment) SetExif(ib *exif.IfdBuilder) (err error) {
 		}
 	}()
 
-    ibe := exif.NewIfdByteEncoder()
+	ibe := exif.NewIfdByteEncoder()
 
-    exifData, err := ibe.EncodeToExif(ib)
-    log.PanicIf(err)
+	exifData, err := ibe.EncodeToExif(ib)
+	log.PanicIf(err)
 
-    s.Data = make([]byte, len(ExifPrefix) + len(exifData))
-    copy(s.Data[0:], ExifPrefix)
-    copy(s.Data[len(ExifPrefix):], exifData)
+	s.Data = make([]byte, len(ExifPrefix)+len(exifData))
+	copy(s.Data[0:], ExifPrefix)
+	copy(s.Data[len(ExifPrefix):], exifData)
 
- 	return nil
+	return nil
 }
 
 type SegmentList struct {
@@ -217,17 +215,17 @@ func NewSegmentList(segments []*Segment) (sl *SegmentList) {
 }
 
 func (sl *SegmentList) OffsetsEqual(o *SegmentList) bool {
-    if len(o.segments) != len(sl.segments) {
-        return false
-    }
+	if len(o.segments) != len(sl.segments) {
+		return false
+	}
 
-    for i, s := range o.segments {
-        if s.MarkerId != sl.segments[i].MarkerId || s.Offset != sl.segments[i].Offset {
-            return false
-        }
-    }
+	for i, s := range o.segments {
+		if s.MarkerId != sl.segments[i].MarkerId || s.Offset != sl.segments[i].Offset {
+			return false
+		}
+	}
 
-    return true
+	return true
 }
 
 func (sl *SegmentList) Segments() []*Segment {
@@ -268,30 +266,30 @@ func (sl *SegmentList) Validate(data []byte) (err error) {
 
 	if sl.segments[0].MarkerId != MARKER_SOI {
 		log.Panicf("first segment not SOI")
-	} else if sl.segments[len(sl.segments) - 1].MarkerId != MARKER_EOI {
+	} else if sl.segments[len(sl.segments)-1].MarkerId != MARKER_EOI {
 		log.Panicf("last segment not EOI")
 	}
 
-    lastOffset := 0
-    for i, s := range sl.segments {
-        if lastOffset != 0 && s.Offset <= lastOffset {
-            log.Panicf("segment offset not greater than the last: SEGMENT=(%d) (0x%08x) <= (0x%08x)", i, s.Offset, lastOffset)
-        }
+	lastOffset := 0
+	for i, s := range sl.segments {
+		if lastOffset != 0 && s.Offset <= lastOffset {
+			log.Panicf("segment offset not greater than the last: SEGMENT=(%d) (0x%08x) <= (0x%08x)", i, s.Offset, lastOffset)
+		}
 
-        // The scan-data doesn't start with a marker.
-        if s.MarkerId == 0x0 {
-            continue
-        }
+		// The scan-data doesn't start with a marker.
+		if s.MarkerId == 0x0 {
+			continue
+		}
 
-        o := s.Offset
-        if bytes.Compare(data[o:o+2], []byte { 0xff, s.MarkerId }) != 0 {
-            log.Panicf("segment offset does not point to the start of a segment: SEGMENT=(%d) (0x%08x)", i, s.Offset)
-        }
+		o := s.Offset
+		if bytes.Compare(data[o:o+2], []byte{0xff, s.MarkerId}) != 0 {
+			log.Panicf("segment offset does not point to the start of a segment: SEGMENT=(%d) (0x%08x)", i, s.Offset)
+		}
 
-        lastOffset = o
-    }
+		lastOffset = o
+	}
 
-    return nil
+	return nil
 }
 
 // FindExif returns the the segment that hosts the EXIF data.
@@ -302,20 +300,20 @@ func (sl *SegmentList) FindExif() (index int, segment *Segment, err error) {
 		}
 	}()
 
-    for i, s := range sl.segments {
-        if s.MarkerId < MARKER_APP0 || s.MarkerId > MARKER_APP15 {
-            continue
-        }
+	for i, s := range sl.segments {
+		if s.MarkerId < MARKER_APP0 || s.MarkerId > MARKER_APP15 {
+			continue
+		}
 
-        if bytes.Compare(s.Data[:len(ExifPrefix)], ExifPrefix) == 0 {
-        	return i, s, nil
-        }
-    }
+		if bytes.Compare(s.Data[:len(ExifPrefix)], ExifPrefix) == 0 {
+			return i, s, nil
+		}
+	}
 
-    log.Panic(ErrNoExif)
+	log.Panic(ErrNoExif)
 
-    // Never called.
-    return -1, nil, nil
+	// Never called.
+	return -1, nil, nil
 }
 
 // Exif returns an `exif.Ifd` instance for the EXIF data we currently have.
@@ -331,10 +329,12 @@ func (sl *SegmentList) Exif() (rootIfd *exif.Ifd, data []byte, err error) {
 
 	rawExif := s.Data[len(ExifPrefix):]
 
-    _, index, err := exif.Collect(rawExif)
-    log.PanicIf(err)
+	ti := exif.NewTagIndex()
 
-    return index.RootIfd, rawExif, nil
+	_, index, err := exif.Collect(ti, rawExif)
+	log.PanicIf(err)
+
+	return index.RootIfd, rawExif, nil
 }
 
 // ConstructExifBuilder returns an `exif.IfdBuilder` instance (needed for
@@ -349,10 +349,10 @@ func (sl *SegmentList) ConstructExifBuilder() (rootIb *exif.IfdBuilder, err erro
 	rootIfd, data, err := sl.Exif()
 	log.PanicIf(err)
 
-    itevr := exif.NewIfdTagEntryValueResolver(data[len(ExifPrefix):], rootIfd.ByteOrder)
+	itevr := exif.NewIfdTagEntryValueResolver(data[len(ExifPrefix):], rootIfd.ByteOrder)
 	ib := exif.NewIfdBuilderFromExistingChain(rootIfd, itevr)
 
-    return ib, nil
+	return ib, nil
 }
 
 // DumpExif returns an unstructured list of tags (useful when just reviewing).
@@ -366,10 +366,10 @@ func (sl *SegmentList) DumpExif() (segmentIndex int, segment *Segment, exifTags 
 	segmentIndex, s, err := sl.FindExif()
 	log.PanicIf(err)
 
-    exifTags, err = GetFlatExifData(s.Data[len(ExifPrefix):])
-    log.PanicIf(err)
+	exifTags, err = GetFlatExifData(s.Data[len(ExifPrefix):])
+	log.PanicIf(err)
 
-    return segmentIndex, s, exifTags, nil
+	return segmentIndex, s, exifTags, nil
 }
 
 // SetExif encodes and sets EXIF data into the given segment. If `index` is -1,
@@ -387,17 +387,17 @@ func (sl *SegmentList) SetExif(ib *exif.IfdBuilder) (err error) {
 			log.Panic(err)
 		}
 
-	    s = &Segment{
+		s = &Segment{
 			MarkerId: MARKER_APP1,
-	    }
+		}
 
 		sl.segments = append(sl.segments, s)
 	}
 
-    err = s.SetExif(ib)
-    log.PanicIf(err)
+	err = s.SetExif(ib)
+	log.PanicIf(err)
 
- 	return nil
+	return nil
 }
 
 func (sl *SegmentList) Write(w io.Writer) (err error) {
@@ -416,12 +416,12 @@ func (sl *SegmentList) Write(w io.Writer) (err error) {
 		// The scan-data will have a marker-ID of (0) because it doesn't have a
 		// marker-ID or length.
 		if s.MarkerId != 0 {
-			_, err := w.Write([]byte { 0xff })
+			_, err := w.Write([]byte{0xff})
 			log.PanicIf(err)
 
 			offset++
 
-			_, err = w.Write([]byte { s.MarkerId })
+			_, err = w.Write([]byte{s.MarkerId})
 			log.PanicIf(err)
 
 			offset++
@@ -456,22 +456,21 @@ func (sl *SegmentList) Write(w io.Writer) (err error) {
 	return nil
 }
 
-
 type JpegSplitter struct {
-	lastMarkerId byte
+	lastMarkerId   byte
 	lastMarkerName string
-	counter int
+	counter        int
 	lastIsScanData bool
-	visitor interface{}
+	visitor        interface{}
 
 	currentOffset int
-	segments *SegmentList
+	segments      *SegmentList
 }
 
 func NewJpegSplitter(visitor interface{}) *JpegSplitter {
 	return &JpegSplitter{
 		segments: NewSegmentList(nil),
-		visitor: visitor,
+		visitor:  visitor,
 	}
 }
 
@@ -514,7 +513,7 @@ func (js *JpegSplitter) processScanData(data []byte) (advanceBytes int, err erro
 	//
 	// If the file is malformed and this isn't actually present, the split
 	// operation will fail automatically.
-	if data[chunkLength - 2] != 0xff || data[chunkLength - 1] != MARKER_EOI {
+	if data[chunkLength-2] != 0xff || data[chunkLength-1] != MARKER_EOI {
 		jpegLogger.Debugf(nil, "Not enough (2)")
 		return 0, nil
 	}
@@ -639,7 +638,7 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 		// marker-ID + size => 2 + 2
 		headerSize = 2 + 2
 
-		if i + 2 >= chunkLength {
+		if i+2 >= chunkLength {
 			jpegLogger.Debugf(nil, "Not enough (4)")
 			return 0, nil, nil
 		}
@@ -663,13 +662,13 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 		//
 		// The length is an unsigned 32-bit network/big-endian.
 
-// TODO(dustin): !! This needs to be tested, but we need an image.
+		// TODO(dustin): !! This needs to be tested, but we need an image.
 
 		if sizeLen != 4 {
 			log.Panicf("known non-zero marker is not four bytes, which is not currently handled: M=(%x)", markerId)
 		}
 
-		if i + 4 >= chunkLength {
+		if i+4 >= chunkLength {
 			jpegLogger.Debugf(nil, "Not enough (5)")
 			return 0, nil, nil
 		}
@@ -739,9 +738,9 @@ func (js *JpegSplitter) parseSof(data []byte) (sof *SofSegment, err error) {
 	log.PanicIf(err)
 
 	sof = &SofSegment{
-		BitsPerSample: bitsPerSample,
-		Width: width,
-		Height: height,
+		BitsPerSample:  bitsPerSample,
+		Width:          width,
+		Height:         height,
 		ComponentCount: componentCount,
 	}
 
@@ -769,10 +768,10 @@ func (js *JpegSplitter) handleSegment(markerId byte, markerName string, headerSi
 	copy(cloned, payload)
 
 	s := &Segment{
-		MarkerId: markerId,
+		MarkerId:   markerId,
 		MarkerName: markerName,
-		Offset: js.currentOffset,
-		Data: cloned,
+		Offset:     js.currentOffset,
+		Data:       cloned,
 	}
 
 	js.currentOffset += headerSize + len(payload)
