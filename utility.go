@@ -66,8 +66,7 @@ func DumpBytesClauseToString(data []byte) string {
 }
 
 type ExifTag struct {
-	ParentIfdName string `json:"parent_ifd_name"`
-	IfdName       string `json:"ifd_name"`
+	IfdPath string `json:"ifd_path"`
 
 	TagId   uint16 `json:"id"`
 	TagName string `json:"name"`
@@ -77,11 +76,11 @@ type ExifTag struct {
 	Value       interface{} `json:"value"`
 	ValueBytes  []byte      `json:"value_bytes"`
 
-	ChildIfdName string `json:"child_ifd_name"`
+	ChildIfdPath string `json:"child_ifd_path"`
 }
 
 func (et ExifTag) String() string {
-	return fmt.Sprintf("ExifTag<PARENT-IFD=[%s] IFD=[%s] TAG-ID=(0x%02x) TAG-NAME=[%s] TAG-TYPE=[%s] VALUE=[%v] VALUE-BYTES=(%d) CHILD-IFD=[%s]", et.ParentIfdName, et.IfdName, et.TagId, et.TagName, et.TagTypeName, et.Value, len(et.ValueBytes), et.ChildIfdName)
+	return fmt.Sprintf("ExifTag<IFD-PATH=[%s] TAG-ID=(0x%02x) TAG-NAME=[%s] TAG-TYPE=[%s] VALUE=[%v] VALUE-BYTES=(%d) CHILD-IFD-PATH=[%s]", et.IfdPath, et.TagId, et.TagName, et.TagTypeName, et.Value, len(et.ValueBytes), et.ChildIfdPath)
 }
 
 func ParseExifData(exifData []byte) (rootIfd *exif.Ifd, err error) {
@@ -91,9 +90,10 @@ func ParseExifData(exifData []byte) (rootIfd *exif.Ifd, err error) {
 		}
 	}()
 
+	im := exif.NewIfdMappingWithStandard()
 	ti := exif.NewTagIndex()
 
-	_, index, err := exif.Collect(ti, exifData)
+	_, index, err := exif.Collect(im, ti, exifData)
 	log.PanicIf(err)
 
 	return index.RootIfd, nil
@@ -117,18 +117,11 @@ func GetFlatExifData(exifData []byte) (exifTags []ExifTag, err error) {
 		var ifd *exif.Ifd
 		ifd, q = q[0], q[1:]
 
-		parentIfdName := ""
-		if ifd.ParentIfd != nil {
-			parentIfdName = ifd.ParentIfd.Identity().IfdName
-		}
-
-		ii := ifd.Identity()
-
 		ti := exif.NewTagIndex()
 		for _, ite := range ifd.Entries {
 			tagName := ""
 
-			it, err := ti.Get(ii, ite.TagId)
+			it, err := ti.Get(ifd.IfdPath, ite.TagId)
 			if err != nil {
 				// If it's a non-standard tag, just leave the name blank.
 				if log.Is(err, exif.ErrTagNotFound) != true {
@@ -145,15 +138,14 @@ func GetFlatExifData(exifData []byte) (exifTags []ExifTag, err error) {
 			log.PanicIf(err)
 
 			et := ExifTag{
-				ParentIfdName: parentIfdName,
-				IfdName:       ii.IfdName,
-				TagId:         ite.TagId,
-				TagName:       tagName,
-				TagTypeId:     ite.TagType,
-				TagTypeName:   exif.TypeNames[ite.TagType],
-				Value:         value,
-				ValueBytes:    valueBytes,
-				ChildIfdName:  ite.ChildIfdName,
+				IfdPath:      ifd.IfdPath,
+				TagId:        ite.TagId,
+				TagName:      tagName,
+				TagTypeId:    ite.TagType,
+				TagTypeName:  exif.TypeNames[ite.TagType],
+				Value:        value,
+				ValueBytes:   valueBytes,
+				ChildIfdPath: ite.ChildIfdPath,
 			}
 
 			exifTags = append(exifTags, et)

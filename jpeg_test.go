@@ -1,18 +1,18 @@
 package jpegstructure
 
 import (
-	"os"
-	"path"
-	"testing"
 	"bufio"
 	"bytes"
+	"fmt"
+	"os"
+	"path"
 	"reflect"
-    "fmt"
+	"testing"
 
 	"io/ioutil"
 
-	"github.com/dsoprea/go-logging"
 	"github.com/dsoprea/go-exif"
+	"github.com/dsoprea/go-logging"
 )
 
 var (
@@ -21,7 +21,7 @@ var (
 
 type collectorVisitor struct {
 	markerList []byte
-	sofList []SofSegment
+	sofList    []SofSegment
 }
 
 func (v *collectorVisitor) HandleSegment(lastMarkerId byte, lastMarkerName string, counter int, lastIsScanData bool) (err error) {
@@ -49,12 +49,12 @@ func (v *collectorVisitor) HandleSof(sof *SofSegment) (err error) {
 }
 
 func Test_JpegSplitter_Split(t *testing.T) {
-    defer func() {
-        if state := recover(); state != nil {
-            err := log.Wrap(state.(error))
-            log.PrintErrorf(err, "Test failure.")
-        }
-    }()
+	defer func() {
+		if state := recover(); state != nil {
+			err := log.Wrap(state.(error))
+			log.PrintErrorf(err, "Test failure.")
+		}
+	}()
 
 	filepath := path.Join(assetsPath, testImageRelFilepath)
 	f, err := os.Open(filepath)
@@ -74,35 +74,36 @@ func Test_JpegSplitter_Split(t *testing.T) {
 
 	// Since each segment can be any size, our buffer must allowed to grow as
 	// large as the file.
-	buffer := []byte {}
+	buffer := []byte{}
 	s.Buffer(buffer, int(size))
 
 	s.Split(js.Split)
 
-	for ; s.Scan() != false; { }
+	for s.Scan() != false {
+	}
 
 	if s.Err() != nil {
 		log.PrintError(s.Err())
 		t.Fatalf("error while scanning: %v", s.Err())
 	}
 
-	expectedMarkers := []byte { 0xd8, 0xe1, 0xe1, 0xdb, 0xc0, 0xc4, 0xda, 0x00, 0xd9 }
+	expectedMarkers := []byte{0xd8, 0xe1, 0xe1, 0xdb, 0xc0, 0xc4, 0xda, 0x00, 0xd9}
 
 	if bytes.Compare(v.markerList, expectedMarkers) != 0 {
 		t.Fatalf("Markers found are not correct: %v\n", DumpBytesToString(v.markerList))
 	}
 
-	expectedSofList := []SofSegment {
+	expectedSofList := []SofSegment{
 		SofSegment{
-			BitsPerSample: 8,
-			Width: 3840,
-			Height: 2560,
+			BitsPerSample:  8,
+			Width:          3840,
+			Height:         2560,
 			ComponentCount: 3,
 		},
 		SofSegment{
-			BitsPerSample: 0,
-			Width: 1281,
-			Height: 1,
+			BitsPerSample:  0,
+			Width:          1281,
+			Height:         1,
 			ComponentCount: 1,
 		},
 	}
@@ -113,26 +114,26 @@ func Test_JpegSplitter_Split(t *testing.T) {
 }
 
 func Test_SegmentList_Write(t *testing.T) {
-    defer func() {
-        if state := recover(); state != nil {
-            err := log.Wrap(state.(error))
-            log.PrintErrorf(err, "Test failure.")
-        }
-    }()
+	defer func() {
+		if state := recover(); state != nil {
+			err := log.Wrap(state.(error))
+			log.PrintErrorf(err, "Test failure.")
+		}
+	}()
 
-    filepath := path.Join(assetsPath, testImageRelFilepath)
+	filepath := path.Join(assetsPath, testImageRelFilepath)
 
-    data, err := ioutil.ReadFile(filepath)
-    log.PanicIf(err)
+	data, err := ioutil.ReadFile(filepath)
+	log.PanicIf(err)
 
-    r := bytes.NewBuffer(data)
+	r := bytes.NewBuffer(data)
 
-    jmp := NewJpegMediaParser()
+	jmp := NewJpegMediaParser()
 
-    sl, err := jmp.Parse(r, len(data))
-    log.PanicIf(err)
+	sl, err := jmp.Parse(r, len(data))
+	log.PanicIf(err)
 
-    b := new(bytes.Buffer)
+	b := new(bytes.Buffer)
 
 	err = sl.Write(b)
 	log.PanicIf(err)
@@ -175,30 +176,28 @@ func Test_SegmentList_Write(t *testing.T) {
 // }
 
 func Test_Segment_SetExif(t *testing.T) {
-    defer func() {
-        if state := recover(); state != nil {
-            err := log.Wrap(state.(error))
-            log.PrintErrorf(err, "Test failure.")
-        }
-    }()
+	defer func() {
+		if state := recover(); state != nil {
+			err := log.Wrap(state.(error))
+			log.PrintErrorf(err, "Test failure.")
+		}
+	}()
 
-    filepath := path.Join(assetsPath, testImageRelFilepath)
+	filepath := path.Join(assetsPath, testImageRelFilepath)
 
-// TODO(dustin): !! Also test writing EXIF created from-scratch.
-// TODO(dustin): !! Test adding a new EXIF (drop the existing).
-// TODO(dustin): !! Might want to test a reconstruction without actually modifying anything. This is also useful. Everything will still be reallocated and this will help us determine if we're having parsing/encoding problems versions problems with an individual tag's value.
-// TODO(dustin): !! Use native/third-party EXIF support to test?
+	// TODO(dustin): !! Also test writing EXIF created from-scratch.
+	// TODO(dustin): !! Test adding a new EXIF (drop the existing).
+	// TODO(dustin): !! Might want to test a reconstruction without actually modifying anything. This is also useful. Everything will still be reallocated and this will help us determine if we're having parsing/encoding problems versions problems with an individual tag's value.
+	// TODO(dustin): !! Use native/third-party EXIF support to test?
 
+	// Parse the image.
 
-    // Parse the image.
+	jmp := NewJpegMediaParser()
 
-    jmp := NewJpegMediaParser()
+	sl, err := jmp.ParseFile(filepath)
+	log.PanicIf(err)
 
-    sl, err := jmp.ParseFile(filepath)
-    log.PanicIf(err)
-
-
-    // Update the UserComment tag.
+	// Update the UserComment tag.
 
 	rootIb, err := sl.ConstructExifBuilder()
 	log.PanicIf(err)
@@ -209,257 +208,252 @@ func Test_Segment_SetExif(t *testing.T) {
 	exifBt := rootIb.Tags()[i]
 	exifIb := exifBt.Value().Ib()
 
-
 	uc := exif.TagUnknownType_9298_UserComment{
-	    EncodingType: exif.TagUnknownType_9298_UserComment_Encoding_ASCII,
-	    EncodingBytes: []byte("TEST COMMENT"),
+		EncodingType:  exif.TagUnknownType_9298_UserComment_Encoding_ASCII,
+		EncodingBytes: []byte("TEST COMMENT"),
 	}
 
 	err = exifIb.SetStandardWithName("UserComment", uc)
 	log.PanicIf(err)
 
+	// Update the exif segment.
 
-    // Update the exif segment.
-
-    _, s, err := sl.FindExif()
-    log.PanicIf(err)
+	_, s, err := sl.FindExif()
+	log.PanicIf(err)
 
 	err = s.SetExif(rootIb)
 	log.PanicIf(err)
 
-    b := new(bytes.Buffer)
+	b := new(bytes.Buffer)
 
 	err = sl.Write(b)
 	log.PanicIf(err)
 
-    recoveredBytes := b.Bytes()
+	recoveredBytes := b.Bytes()
 
+	// Parse the re-encoded JPEG data and validate.
 
-    // Parse the re-encoded JPEG data and validate.
+	recoveredSl, err := jmp.ParseBytes(recoveredBytes)
+	log.PanicIf(err)
 
-    recoveredSl, err := jmp.ParseBytes(recoveredBytes)
-    log.PanicIf(err)
+	rootIfd, _, err := recoveredSl.Exif()
+	log.PanicIf(err)
 
-    rootIfd, _, err := recoveredSl.Exif()
-    log.PanicIf(err)
+	exifIfd, err := rootIfd.ChildWithIfdPath(exif.IfdPathStandardExif)
+	log.PanicIf(err)
 
-    exifIfd, err := rootIfd.ChildWithIfdIdentity(exif.ExifIi)
-    log.PanicIf(err)
+	results, err := exifIfd.FindTagWithName("UserComment")
+	log.PanicIf(err)
 
-    results, err := exifIfd.FindTagWithName("UserComment")
-    log.PanicIf(err)
+	ucIte := results[0]
 
-    ucIte := results[0]
+	if ucIte.TagId != 0x9286 {
+		t.Fatalf("tag-ID not correct")
+	}
 
-    if ucIte.TagId != 0x9286 {
-        t.Fatalf("tag-ID not correct")
-    }
+	recoveredValueBytes, err := exifIfd.TagValueBytes(ucIte)
+	log.PanicIf(err)
 
-    recoveredValueBytes, err := exifIfd.TagValueBytes(ucIte)
-    log.PanicIf(err)
+	expectedValueBytes := make([]byte, 0)
 
-    expectedValueBytes := make([]byte, 0)
+	expectedValueBytes = append(expectedValueBytes, []byte{'A', 'S', 'C', 'I', 'I', 0, 0, 0}...)
+	expectedValueBytes = append(expectedValueBytes, []byte("TEST COMMENT")...)
 
-    expectedValueBytes = append(expectedValueBytes, []byte{ 'A', 'S', 'C', 'I', 'I', 0, 0, 0 }...)
-    expectedValueBytes = append(expectedValueBytes, []byte("TEST COMMENT")...)
-
-    if bytes.Compare(recoveredValueBytes, expectedValueBytes) != 0 {
-        t.Fatalf("Recovered UserComment does not have the right value: %v != %v", recoveredValueBytes, expectedValueBytes)
-    }
+	if bytes.Compare(recoveredValueBytes, expectedValueBytes) != 0 {
+		t.Fatalf("Recovered UserComment does not have the right value: %v != %v", recoveredValueBytes, expectedValueBytes)
+	}
 }
 
 func Test_SegmentList_SetExif(t *testing.T) {
-    defer func() {
-        if state := recover(); state != nil {
-            err := log.Wrap(state.(error))
-            log.PrintErrorf(err, "Test failure.")
-        }
-    }()
+	defer func() {
+		if state := recover(); state != nil {
+			err := log.Wrap(state.(error))
+			log.PrintErrorf(err, "Test failure.")
+		}
+	}()
 
+	initialSegments := []*Segment{
+		&Segment{MarkerId: 0},
+		&Segment{MarkerId: 0},
+	}
 
-    initialSegments := []*Segment {
-        &Segment { MarkerId: 0 },
-        &Segment { MarkerId: 0 },
-    }
+	sl := NewSegmentList(initialSegments)
 
-    sl := NewSegmentList(initialSegments)
+	im := exif.NewIfdMappingWithStandard()
+	ti := exif.NewTagIndex()
 
-    ib := exif.NewIfdBuilder(exif.RootIi, exif.TestDefaultByteOrder)
-    ib.AddStandardWithName("ProcessingSoftware", "some software")
+	ib := exif.NewIfdBuilder(im, ti, exif.IfdPathStandard, exif.TestDefaultByteOrder)
+	ib.AddStandardWithName("ProcessingSoftware", "some software")
 
-    err := sl.SetExif(ib)
-    log.PanicIf(err)
+	err := sl.SetExif(ib)
+	log.PanicIf(err)
 
-    exifSegment := sl.Segments()[2]
+	exifSegment := sl.Segments()[2]
 
-    if exifSegment.MarkerId != MARKER_APP1 {
-        t.Fatalf("New segment is not correct.")
-    } else if len(exifSegment.Data) == 0 {
-        t.Fatalf("New segment does not have data.")
-    }
+	if exifSegment.MarkerId != MARKER_APP1 {
+		t.Fatalf("New segment is not correct.")
+	} else if len(exifSegment.Data) == 0 {
+		t.Fatalf("New segment does not have data.")
+	}
 
-    originalSegment := exifSegment
-    originalData := exifSegment.Data
+	originalSegment := exifSegment
+	originalData := exifSegment.Data
 
+	sl.Add(&Segment{MarkerId: 0})
+	sl.Add(&Segment{MarkerId: 0})
 
-    sl.Add(&Segment{ MarkerId: 0 })
-    sl.Add(&Segment{ MarkerId: 0 })
+	ib = exif.NewIfdBuilder(im, ti, exif.IfdPathStandard, exif.TestDefaultByteOrder)
+	ib.AddStandardWithName("ProcessingSoftware", "some software2")
 
-    ib = exif.NewIfdBuilder(exif.RootIi, exif.TestDefaultByteOrder)
-    ib.AddStandardWithName("ProcessingSoftware", "some software2")
+	err = sl.SetExif(ib)
+	log.PanicIf(err)
 
-    err = sl.SetExif(ib)
-    log.PanicIf(err)
+	exifSegment = sl.Segments()[2]
 
-    exifSegment = sl.Segments()[2]
+	if len(sl.Segments()) != 5 {
+		t.Fatalf("Segment count not correct.")
+	} else if exifSegment != originalSegment {
+		// The data should change, not the segment itself.
 
-    if len(sl.Segments()) != 5 {
-        t.Fatalf("Segment count not correct.")
-    } else if exifSegment != originalSegment {
-        // The data should change, not the segment itself.
-
-        t.Fatalf("EXIF segment has been changed.")
-    } else if exifSegment.MarkerId != MARKER_APP1 {
-        t.Fatalf("EXIF segment is not correct.")
-    } else if bytes.Compare(exifSegment.Data, originalData) == 0 {
-        t.Fatalf("EXIF segment has not changed.")
-    }
+		t.Fatalf("EXIF segment has been changed.")
+	} else if exifSegment.MarkerId != MARKER_APP1 {
+		t.Fatalf("EXIF segment is not correct.")
+	} else if bytes.Compare(exifSegment.Data, originalData) == 0 {
+		t.Fatalf("EXIF segment has not changed.")
+	}
 }
 
 func ExampleSegmentList_SetExif() {
-    filepath := path.Join(assetsPath, testImageRelFilepath)
+	filepath := path.Join(assetsPath, testImageRelFilepath)
 
-    // Parse the image.
+	// Parse the image.
 
-    jmp := NewJpegMediaParser()
+	jmp := NewJpegMediaParser()
 
-    sl, err := jmp.ParseFile(filepath)
-    log.PanicIf(err)
+	sl, err := jmp.ParseFile(filepath)
+	log.PanicIf(err)
 
+	// Update the UserComment tag.
 
-    // Update the UserComment tag.
+	rootIb, err := sl.ConstructExifBuilder()
+	log.PanicIf(err)
 
-    rootIb, err := sl.ConstructExifBuilder()
-    log.PanicIf(err)
+	i, err := rootIb.Find(exif.IfdExifId)
+	log.PanicIf(err)
 
-    i, err := rootIb.Find(exif.IfdExifId)
-    log.PanicIf(err)
+	exifBt := rootIb.Tags()[i]
+	exifIb := exifBt.Value().Ib()
 
-    exifBt := rootIb.Tags()[i]
-    exifIb := exifBt.Value().Ib()
+	uc := exif.TagUnknownType_9298_UserComment{
+		EncodingType:  exif.TagUnknownType_9298_UserComment_Encoding_ASCII,
+		EncodingBytes: []byte("TEST COMMENT"),
+	}
 
+	err = exifIb.SetStandardWithName("UserComment", uc)
+	log.PanicIf(err)
 
-    uc := exif.TagUnknownType_9298_UserComment{
-        EncodingType: exif.TagUnknownType_9298_UserComment_Encoding_ASCII,
-        EncodingBytes: []byte("TEST COMMENT"),
-    }
+	// Update the exif segment.
 
-    err = exifIb.SetStandardWithName("UserComment", uc)
-    log.PanicIf(err)
+	err = sl.SetExif(rootIb)
+	log.PanicIf(err)
 
+	b := new(bytes.Buffer)
 
-    // Update the exif segment.
+	err = sl.Write(b)
+	log.PanicIf(err)
 
-    err = sl.SetExif(rootIb)
-    log.PanicIf(err)
-
-    b := new(bytes.Buffer)
-
-    err = sl.Write(b)
-    log.PanicIf(err)
-
-    updatedImageBytes := b.Bytes()
-    updatedImageBytes = updatedImageBytes
-    // Output:
+	updatedImageBytes := b.Bytes()
+	updatedImageBytes = updatedImageBytes
+	// Output:
 }
 
 func Test_SegmentList_FindExif(t *testing.T) {
-    defer func() {
-        if state := recover(); state != nil {
-            err := log.Wrap(state.(error))
-            log.PrintErrorf(err, "Test failure.")
-        }
-    }()
+	defer func() {
+		if state := recover(); state != nil {
+			err := log.Wrap(state.(error))
+			log.PrintErrorf(err, "Test failure.")
+		}
+	}()
 
-    imageFilepath := path.Join(assetsPath, testImageRelFilepath)
+	imageFilepath := path.Join(assetsPath, testImageRelFilepath)
 
-    // Parse the image.
+	// Parse the image.
 
-    jmp := NewJpegMediaParser()
+	jmp := NewJpegMediaParser()
 
-    sl, err := jmp.ParseFile(imageFilepath)
-    log.PanicIf(err)
+	sl, err := jmp.ParseFile(imageFilepath)
+	log.PanicIf(err)
 
-    segmentNumber, s, err := sl.FindExif()
-    log.PanicIf(err)
+	segmentNumber, s, err := sl.FindExif()
+	log.PanicIf(err)
 
-    if segmentNumber != 1 {
-        t.Fatalf("exif not found in right position: (%d)", segmentNumber)
-    }
+	if segmentNumber != 1 {
+		t.Fatalf("exif not found in right position: (%d)", segmentNumber)
+	}
 
-    exifFilepath := fmt.Sprintf("%s.exif", imageFilepath)
+	exifFilepath := fmt.Sprintf("%s.exif", imageFilepath)
 
-    expectedExifBytes, err := ioutil.ReadFile(exifFilepath)
-    log.PanicIf(err)
+	expectedExifBytes, err := ioutil.ReadFile(exifFilepath)
+	log.PanicIf(err)
 
-    if bytes.Compare(s.Data[6:], expectedExifBytes) != 0 {
-        t.Fatalf("exif data not correct")
-    }
+	if bytes.Compare(s.Data[6:], expectedExifBytes) != 0 {
+		t.Fatalf("exif data not correct")
+	}
 }
 
 func Test_SegmentList_Exif(t *testing.T) {
-    defer func() {
-        if state := recover(); state != nil {
-            err := log.Wrap(state.(error))
-            log.PrintErrorf(err, "Test failure.")
-        }
-    }()
+	defer func() {
+		if state := recover(); state != nil {
+			err := log.Wrap(state.(error))
+			log.PrintErrorf(err, "Test failure.")
+		}
+	}()
 
-    imageFilepath := path.Join(assetsPath, testImageRelFilepath)
+	imageFilepath := path.Join(assetsPath, testImageRelFilepath)
 
-    // Parse the image.
+	// Parse the image.
 
-    jmp := NewJpegMediaParser()
+	jmp := NewJpegMediaParser()
 
-    sl, err := jmp.ParseFile(imageFilepath)
-    log.PanicIf(err)
+	sl, err := jmp.ParseFile(imageFilepath)
+	log.PanicIf(err)
 
-    rootIfd, data, err := sl.Exif()
-    log.PanicIf(err)
+	rootIfd, data, err := sl.Exif()
+	log.PanicIf(err)
 
-    if rootIfd.Ii != exif.RootIi {
-        t.Fatalf("root IFD does not have correct identity")
-    }
+	if rootIfd.IfdPath != exif.IfdPathStandard {
+		t.Fatalf("root IFD does not have correct identity")
+	}
 
-    exifFilepath := fmt.Sprintf("%s.exif", imageFilepath)
+	exifFilepath := fmt.Sprintf("%s.exif", imageFilepath)
 
-    expectedExifBytes, err := ioutil.ReadFile(exifFilepath)
-    log.PanicIf(err)
+	expectedExifBytes, err := ioutil.ReadFile(exifFilepath)
+	log.PanicIf(err)
 
-    if bytes.Compare(data, expectedExifBytes) != 0 {
-        t.Fatalf("exif data not correct")
-    }
+	if bytes.Compare(data, expectedExifBytes) != 0 {
+		t.Fatalf("exif data not correct")
+	}
 }
 
 func TestSegmentList_Validate(t *testing.T) {
-    filepath := path.Join(assetsPath, testImageRelFilepath)
+	filepath := path.Join(assetsPath, testImageRelFilepath)
 
-    data, err := ioutil.ReadFile(filepath)
-    log.PanicIf(err)
+	data, err := ioutil.ReadFile(filepath)
+	log.PanicIf(err)
 
-    segments := []*Segment {
-        &Segment{
-            MarkerId: 0x0,
-            Offset: 0x0,
-        },
-    }
+	segments := []*Segment{
+		&Segment{
+			MarkerId: 0x0,
+			Offset:   0x0,
+		},
+	}
 
-    sl := NewSegmentList(segments)
+	sl := NewSegmentList(segments)
 
-    err = sl.Validate(data)
-    if err == nil {
-        t.Fatalf("Expected error about missing minimum segments.")
-    } else if err.Error() != "minimum segments not found" {
-        log.Panic(err)
-    }
+	err = sl.Validate(data)
+	if err == nil {
+		t.Fatalf("Expected error about missing minimum segments.")
+	} else if err.Error() != "minimum segments not found" {
+		log.Panic(err)
+	}
 }
