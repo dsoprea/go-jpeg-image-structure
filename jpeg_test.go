@@ -8,6 +8,7 @@ import (
 	"path"
 	"reflect"
 	"testing"
+	"time"
 
 	"io/ioutil"
 
@@ -323,10 +324,7 @@ func Test_SegmentList_SetExif(t *testing.T) {
 	}
 }
 
-// ExampleSegmentList_SetExif_UserComment shows how to construct a chain of
-// `IfdBuilder` structs for the existing IFDs, identify the builder for the IFD
-// that we know hosts the tag we want to change, and how to change it.
-func ExampleSegmentList_SetExif() {
+func ExampleSegmentList_SetExif_unknowntype() {
 	filepath := path.Join(assetsPath, testImageRelFilepath)
 
 	// Parse the image.
@@ -352,6 +350,50 @@ func ExampleSegmentList_SetExif() {
 	}
 
 	err = exifIb.SetStandardWithName("UserComment", uc)
+	log.PanicIf(err)
+
+	// Update the exif segment.
+
+	err = sl.SetExif(rootIb)
+	log.PanicIf(err)
+
+	b := new(bytes.Buffer)
+
+	err = sl.Write(b)
+	log.PanicIf(err)
+
+	updatedImageBytes := b.Bytes()
+	updatedImageBytes = updatedImageBytes
+	// Output:
+}
+
+// ExampleSegmentList_SetExif shows how to construct a chain of
+// `IfdBuilder` structs for the existing IFDs, identify the builder for the IFD
+// that we know hosts the tag we want to change, and how to change it.
+func ExampleSegmentList_SetExif() {
+	filepath := path.Join(assetsPath, testImageRelFilepath)
+
+	// Parse the image.
+
+	jmp := NewJpegMediaParser()
+
+	sl, err := jmp.ParseFile(filepath)
+	log.PanicIf(err)
+
+	// Update the UserComment tag.
+
+	rootIb, err := sl.ConstructExifBuilder()
+	log.PanicIf(err)
+
+	ifdPath := "IFD0"
+
+	ifdIb, err := exif.GetOrCreateIbFromRootIb(rootIb, ifdPath)
+	log.PanicIf(err)
+
+	now := time.Now().UTC()
+	updatedTimestampPhrase := exif.ExifFullTimestampString(now)
+
+	err = ifdIb.SetStandardWithName("DateTime", updatedTimestampPhrase)
 	log.PanicIf(err)
 
 	// Update the exif segment.
