@@ -323,6 +323,9 @@ func Test_SegmentList_SetExif(t *testing.T) {
 	}
 }
 
+// ExampleSegmentList_SetExif_UserComment shows how to construct a chain of
+// `IfdBuilder` structs for the existing IFDs, identify the builder for the IFD
+// that we know hosts the tag we want to change, and how to change it.
 func ExampleSegmentList_SetExif() {
 	filepath := path.Join(assetsPath, testImageRelFilepath)
 
@@ -338,11 +341,10 @@ func ExampleSegmentList_SetExif() {
 	rootIb, err := sl.ConstructExifBuilder()
 	log.PanicIf(err)
 
-	i, err := rootIb.Find(exif.IfdExifId)
-	log.PanicIf(err)
+	ifdPath := "IFD/Exif"
 
-	exifBt := rootIb.Tags()[i]
-	exifIb := exifBt.Value().Ib()
+	exifIb, err := exif.GetOrCreateIbFromRootIb(rootIb, ifdPath)
+	log.PanicIf(err)
 
 	uc := exif.TagUnknownType_9298_UserComment{
 		EncodingType:  exif.TagUnknownType_9298_UserComment_Encoding_ASCII,
