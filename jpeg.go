@@ -3,7 +3,6 @@ package jpegstructure
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 
@@ -149,10 +148,6 @@ var (
 	}
 
 	ExifPrefix = []byte{'E', 'x', 'i', 'f', 0, 0}
-)
-
-var (
-	ErrNoExif = errors.New("file does not have EXIF")
 )
 
 type SofSegment struct {
@@ -310,10 +305,7 @@ func (sl *SegmentList) FindExif() (index int, segment *Segment, err error) {
 		}
 	}
 
-	log.Panic(ErrNoExif)
-
-	// Never called.
-	return -1, nil, nil
+	return -1, nil, exif.ErrNoExif
 }
 
 // Exif returns an `exif.Ifd` instance for the EXIF data we currently have.
@@ -365,7 +357,13 @@ func (sl *SegmentList) DumpExif() (segmentIndex int, segment *Segment, exifTags 
 	}()
 
 	segmentIndex, s, err := sl.FindExif()
-	log.PanicIf(err)
+	if err != nil {
+		if err == exif.ErrNoExif {
+			return 0, nil, nil, err
+		}
+
+		log.Panic(err)
+	}
 
 	exifTags, err = GetFlatExifData(s.Data[len(ExifPrefix):])
 	log.PanicIf(err)
@@ -384,7 +382,7 @@ func (sl *SegmentList) SetExif(ib *exif.IfdBuilder) (err error) {
 
 	_, s, err := sl.FindExif()
 	if err != nil {
-		if log.Is(err, ErrNoExif) == false {
+		if log.Is(err, exif.ErrNoExif) == false {
 			log.Panic(err)
 		}
 
@@ -399,6 +397,29 @@ func (sl *SegmentList) SetExif(ib *exif.IfdBuilder) (err error) {
 	log.PanicIf(err)
 
 	return nil
+}
+
+// SetExif encodes and sets EXIF data into the given segment. If `index` is -1,
+// append a new segment.
+func (sl *SegmentList) DropExif() (wasDropped bool, err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+	i, _, err := sl.FindExif()
+	if err == nil {
+		// Found.
+		sl.segments = append(sl.segments[:i], sl.segments[i+1:]...)
+
+		return true, nil
+	} else if log.Is(err, exif.ErrNoExif) == false {
+		log.Panic(err)
+	}
+
+	// Not found.
+	return false, nil
 }
 
 func (sl *SegmentList) Write(w io.Writer) (err error) {

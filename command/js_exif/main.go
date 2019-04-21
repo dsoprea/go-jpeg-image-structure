@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
+	"github.com/dsoprea/go-exif"
 	"github.com/dsoprea/go-jpeg-image-structure"
 	"github.com/dsoprea/go-logging"
 	"github.com/jessevdk/go-flags"
@@ -55,7 +56,14 @@ func main() {
 	log.PanicIf(err)
 
 	_, _, et, err := sl.DumpExif()
-	log.PanicIf(err)
+	if err != nil {
+		if err == exif.ErrNoExif {
+			fmt.Printf("No EXIF.\n")
+			os.Exit(10)
+		}
+
+		log.Panic(err)
+	}
 
 	if options.Json == true {
 		raw, err := json.MarshalIndent(et, "  ", "  ")
