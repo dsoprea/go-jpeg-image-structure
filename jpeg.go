@@ -195,6 +195,25 @@ func (s *Segment) SetExif(ib *exif.IfdBuilder) (err error) {
 	return nil
 }
 
+// Exif returns an `exif.Ifd` instance for the EXIF data we currently have.
+func (s *Segment) Exif() (rootIfd *exif.Ifd, data []byte, err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+	rawExif := s.Data[len(ExifPrefix):]
+
+	im := exif.NewIfdMappingWithStandard()
+	ti := exif.NewTagIndex()
+
+	_, index, err := exif.Collect(im, ti, rawExif)
+	log.PanicIf(err)
+
+	return index.RootIfd, rawExif, nil
+}
+
 type SegmentList struct {
 	segments []*Segment
 }
@@ -309,7 +328,7 @@ func (sl *SegmentList) FindExif() (index int, segment *Segment, err error) {
 }
 
 // Exif returns an `exif.Ifd` instance for the EXIF data we currently have.
-func (sl *SegmentList) Exif() (rootIfd *exif.Ifd, data []byte, err error) {
+func (sl *SegmentList) Exif() (rootIfd *exif.Ifd, rawExif []byte, err error) {
 	defer func() {
 		if state := recover(); state != nil {
 			err = log.Wrap(state.(error))
@@ -319,15 +338,10 @@ func (sl *SegmentList) Exif() (rootIfd *exif.Ifd, data []byte, err error) {
 	_, s, err := sl.FindExif()
 	log.PanicIf(err)
 
-	rawExif := s.Data[len(ExifPrefix):]
-
-	im := exif.NewIfdMappingWithStandard()
-	ti := exif.NewTagIndex()
-
-	_, index, err := exif.Collect(im, ti, rawExif)
+	rootIfd, rawExif, err = s.Exif()
 	log.PanicIf(err)
 
-	return index.RootIfd, rawExif, nil
+	return rootIfd, rawExif, nil
 }
 
 // ConstructExifBuilder returns an `exif.IfdBuilder` instance (needed for
@@ -371,6 +385,12 @@ func (sl *SegmentList) DumpExif() (segmentIndex int, segment *Segment, exifTags 
 	return segmentIndex, s, exifTags, nil
 }
 
+func makeEmptyExifSegment() (s *Segment) {
+	return &Segment{
+		MarkerId: MARKER_APP1,
+	}
+}
+
 // SetExif encodes and sets EXIF data into the given segment. If `index` is -1,
 // append a new segment.
 func (sl *SegmentList) SetExif(ib *exif.IfdBuilder) (err error) {
@@ -386,11 +406,14 @@ func (sl *SegmentList) SetExif(ib *exif.IfdBuilder) (err error) {
 			log.Panic(err)
 		}
 
-		s = &Segment{
-			MarkerId: MARKER_APP1,
-		}
+		s = makeEmptyExifSegment()
 
-		sl.segments = append(sl.segments, s)
+		// Install it near the beginning where we know it's safe. We can't
+		// insert it after the EOI segment, and there might be more than one
+		// depending on implementation and/or lax adherence to the standard.
+		tail := sl.segments[1:]
+		sl.segments = append(sl.segments[:1], s)
+		sl.segments = append(sl.segments, tail...)
 	}
 
 	err = s.SetExif(ib)
@@ -399,8 +422,7 @@ func (sl *SegmentList) SetExif(ib *exif.IfdBuilder) (err error) {
 	return nil
 }
 
-// SetExif encodes and sets EXIF data into the given segment. If `index` is -1,
-// append a new segment.
+// DropExif will drop the EXIF data if present.
 func (sl *SegmentList) DropExif() (wasDropped bool, err error) {
 	defer func() {
 		if state := recover(); state != nil {

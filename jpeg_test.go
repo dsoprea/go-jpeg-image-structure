@@ -54,6 +54,7 @@ func Test_JpegSplitter_Split(t *testing.T) {
 		if state := recover(); state != nil {
 			err := log.Wrap(state.(error))
 			log.PrintErrorf(err, "Test failure.")
+			t.Fatalf("Test failure.")
 		}
 	}()
 
@@ -114,11 +115,12 @@ func Test_JpegSplitter_Split(t *testing.T) {
 	}
 }
 
-func Test_SegmentList_Write(t *testing.T) {
+func TestSegmentList_Write(t *testing.T) {
 	defer func() {
 		if state := recover(); state != nil {
 			err := log.Wrap(state.(error))
 			log.PrintErrorf(err, "Test failure.")
+			t.Fatalf("Test failure.")
 		}
 	}()
 
@@ -146,11 +148,12 @@ func Test_SegmentList_Write(t *testing.T) {
 	}
 }
 
-// func Test_SegmentList_WriteReconstitutedExif(t *testing.T) {
+// func TestSegmentList_WriteReconstitutedExif(t *testing.T) {
 //     defer func() {
 //         if state := recover(); state != nil {
 //             err := log.Wrap(state.(error))
 //             log.PrintErrorf(err, "Test failure.")
+//             t.Fatalf("Test failure.")
 //         }
 //     }()
 
@@ -176,18 +179,17 @@ func Test_SegmentList_Write(t *testing.T) {
 // 	log.PanicIf(err)
 // }
 
-func Test_Segment_SetExif(t *testing.T) {
+func TestSegment_SetExif_Update(t *testing.T) {
 	defer func() {
 		if state := recover(); state != nil {
 			err := log.Wrap(state.(error))
 			log.PrintErrorf(err, "Test failure.")
+			t.Fatalf("Test failure.")
 		}
 	}()
 
 	filepath := path.Join(assetsPath, testImageRelFilepath)
 
-	// TODO(dustin): !! Also test writing EXIF created from-scratch.
-	// TODO(dustin): !! Test adding a new EXIF (drop the existing).
 	// TODO(dustin): !! Might want to test a reconstruction without actually modifying anything. This is also useful. Everything will still be reallocated and this will help us determine if we're having parsing/encoding problems versions problems with an individual tag's value.
 	// TODO(dustin): !! Use native/third-party EXIF support to test?
 
@@ -219,10 +221,7 @@ func Test_Segment_SetExif(t *testing.T) {
 
 	// Update the exif segment.
 
-	_, s, err := sl.FindExif()
-	log.PanicIf(err)
-
-	err = s.SetExif(rootIb)
+	err = sl.SetExif(rootIb)
 	log.PanicIf(err)
 
 	b := new(bytes.Buffer)
@@ -265,11 +264,140 @@ func Test_Segment_SetExif(t *testing.T) {
 	}
 }
 
-func Test_SegmentList_SetExif(t *testing.T) {
+func TestSegment_SetExif_FromScratch(t *testing.T) {
 	defer func() {
 		if state := recover(); state != nil {
 			err := log.Wrap(state.(error))
 			log.PrintErrorf(err, "Test failure.")
+			t.Fatalf("Test failure.")
+		}
+	}()
+
+	// Create the IB.
+
+	im := exif.NewIfdMappingWithStandard()
+	ti := exif.NewTagIndex()
+
+	err := exif.LoadStandardTags(ti)
+	log.PanicIf(err)
+
+	rootIb := exif.NewIfdBuilder(im, ti, exif.IfdPathStandard, exif.EncodeDefaultByteOrder)
+
+	err = rootIb.AddStandardWithName("ProcessingSoftware", "some software")
+	log.PanicIf(err)
+
+	// Encode.
+
+	s := makeEmptyExifSegment()
+
+	err = s.SetExif(rootIb)
+	log.PanicIf(err)
+
+	// Decode.
+
+	rootIfd, _, err := s.Exif()
+	log.PanicIf(err)
+
+	results, err := rootIfd.FindTagWithName("ProcessingSoftware")
+	log.PanicIf(err)
+
+	ucIte := results[0]
+
+	if ucIte.TagId != 0x000b {
+		t.Fatalf("tag-ID not correct")
+	}
+
+	recoveredValueRaw, err := rootIfd.TagValue(ucIte)
+	log.PanicIf(err)
+
+	recoveredValue := recoveredValueRaw.(string)
+	if recoveredValue != "some software" {
+		t.Fatalf("Value of tag not correct: [%s]", recoveredValue)
+	}
+}
+
+func TestSegmentList_SetExif_FromScratch(t *testing.T) {
+	defer func() {
+		if state := recover(); state != nil {
+			err := log.Wrap(state.(error))
+			log.PrintErrorf(err, "Test failure.")
+			t.Fatalf("Test failure.")
+		}
+	}()
+
+	// Parse the image.
+
+	filepath := path.Join(assetsPath, testImageRelFilepath)
+
+	jmp := NewJpegMediaParser()
+
+	sl, err := jmp.ParseFile(filepath)
+	log.PanicIf(err)
+
+	// Make sure we don't start out with EXIF data.
+
+	wasDropped, err := sl.DropExif()
+	log.PanicIf(err)
+
+	if wasDropped != true {
+		t.Fatalf("Expected the EXIF segment to be dropped, but it wasn't.")
+	}
+
+	// Set the ProcessingSoftware tag.
+
+	im := exif.NewIfdMappingWithStandard()
+	ti := exif.NewTagIndex()
+
+	err = exif.LoadStandardTags(ti)
+	log.PanicIf(err)
+
+	rootIb := exif.NewIfdBuilder(im, ti, exif.IfdPathStandard, exif.EncodeDefaultByteOrder)
+
+	err = rootIb.AddStandardWithName("ProcessingSoftware", "some software")
+	log.PanicIf(err)
+
+	err = sl.SetExif(rootIb)
+	log.PanicIf(err)
+
+	b := new(bytes.Buffer)
+
+	err = sl.Write(b)
+	log.PanicIf(err)
+
+	recoveredBytes := b.Bytes()
+
+	// Parse the re-encoded JPEG data and validate.
+
+	recoveredSl, err := jmp.ParseBytes(recoveredBytes)
+	log.PanicIf(err)
+
+	rootIfd, _, err := recoveredSl.Exif()
+	log.PanicIf(err)
+
+	results, err := rootIfd.FindTagWithName("ProcessingSoftware")
+	log.PanicIf(err)
+
+	ucIte := results[0]
+
+	if ucIte.TagId != 0x000b {
+		t.Fatalf("tag-ID not correct")
+	}
+
+	recoveredValueRaw, err := rootIfd.TagValue(ucIte)
+	log.PanicIf(err)
+
+	recoveredValue := recoveredValueRaw.(string)
+	if recoveredValue != "some software" {
+		t.Fatalf("Value of tag not correct: [%s]", recoveredValue)
+	}
+}
+
+func TestSegmentList_SetExif(t *testing.T) {
+	defer func() {
+		if state := recover(); state != nil {
+			err := log.Wrap(state.(error))
+			log.PrintErrorf(err, "Test failure.")
+			t.Fatalf("Test failure.")
 		}
 	}()
 
@@ -411,11 +539,12 @@ func ExampleSegmentList_SetExif() {
 	// Output:
 }
 
-func Test_SegmentList_FindExif(t *testing.T) {
+func TestSegmentList_FindExif(t *testing.T) {
 	defer func() {
 		if state := recover(); state != nil {
 			err := log.Wrap(state.(error))
 			log.PrintErrorf(err, "Test failure.")
+			t.Fatalf("Test failure.")
 		}
 	}()
 
@@ -445,11 +574,12 @@ func Test_SegmentList_FindExif(t *testing.T) {
 	}
 }
 
-func Test_SegmentList_Exif(t *testing.T) {
+func TestSegmentList_Exif(t *testing.T) {
 	defer func() {
 		if state := recover(); state != nil {
 			err := log.Wrap(state.(error))
 			log.PrintErrorf(err, "Test failure.")
+			t.Fatalf("Test failure.")
 		}
 	}()
 
@@ -463,6 +593,44 @@ func Test_SegmentList_Exif(t *testing.T) {
 	log.PanicIf(err)
 
 	rootIfd, data, err := sl.Exif()
+	log.PanicIf(err)
+
+	if rootIfd.IfdPath != exif.IfdPathStandard {
+		t.Fatalf("root IFD does not have correct identity")
+	}
+
+	exifFilepath := fmt.Sprintf("%s.exif", imageFilepath)
+
+	expectedExifBytes, err := ioutil.ReadFile(exifFilepath)
+	log.PanicIf(err)
+
+	if bytes.Compare(data, expectedExifBytes) != 0 {
+		t.Fatalf("exif data not correct")
+	}
+}
+
+func TestSegment_Exif(t *testing.T) {
+	defer func() {
+		if state := recover(); state != nil {
+			err := log.Wrap(state.(error))
+			log.PrintErrorf(err, "Test failure.")
+			t.Fatalf("Test failure.")
+		}
+	}()
+
+	imageFilepath := path.Join(assetsPath, testImageRelFilepath)
+
+	// Parse the image.
+
+	jmp := NewJpegMediaParser()
+
+	sl, err := jmp.ParseFile(imageFilepath)
+	log.PanicIf(err)
+
+	_, s, err := sl.FindExif()
+	log.PanicIf(err)
+
+	rootIfd, data, err := s.Exif()
 	log.PanicIf(err)
 
 	if rootIfd.IfdPath != exif.IfdPathStandard {
