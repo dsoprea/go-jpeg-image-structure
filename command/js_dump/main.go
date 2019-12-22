@@ -1,11 +1,11 @@
 package main
 
 import (
-    "os"
     "fmt"
+    "os"
 
-    "io/ioutil"
     "encoding/json"
+    "io/ioutil"
 
     "github.com/dsoprea/go-jpeg-image-structure"
     "github.com/dsoprea/go-logging"
@@ -14,29 +14,27 @@ import (
 
 var (
     options = &struct {
-        Filepath string `short:"f" long:"filepath" required:"true" description:"File-path of JPEG image ('-' for STDIN)"`
-        JsonAsList bool `short:"l" long:"json-list" description:"Print segments as a JSON object"`
-        JsonAsObject bool `short:"o" long:"json-object" description:"Print segments as a JSON object"`
-        IncludeData bool `short:"d" long:"data" description:"Include actual JPEG data (only with JSON)"`
-        Verbose bool `short:"v" long:"verbose" description:"Enable logging verbosity"`
-    } {}
+        Filepath     string `short:"f" long:"filepath" required:"true" description:"File-path of JPEG image ('-' for STDIN)"`
+        JsonAsList   bool   `short:"l" long:"json-list" description:"Print segments as a JSON list"`
+        JsonAsObject bool   `short:"o" long:"json-object" description:"Print segments as a JSON object"`
+        IncludeData  bool   `short:"d" long:"data" description:"Include actual JPEG data (only with JSON)"`
+        Verbose      bool   `short:"v" long:"verbose" description:"Enable logging verbosity"`
+    }{}
 )
 
 type segmentResult struct {
-    MarkerId byte `json:"marker_id"`
+    MarkerId   byte   `json:"marker_id"`
     MarkerName string `json:"marker_name"`
-    Offset int `json:"offset"`
-    Data []byte `json:"data"`
-    Length int `json:"length"`
+    Offset     int    `json:"offset"`
+    Data       []byte `json:"data"`
+    Length     int    `json:"length"`
 }
-
 
 type segmentIndexItem struct {
-    Offset int `json:"offset"`
-    Data []byte `json:"data"`
-    Length int `json:"length"`
+    Offset int    `json:"offset"`
+    Data   []byte `json:"data"`
+    Length int    `json:"length"`
 }
-
 
 func main() {
     _, err := flags.Parse(options)
@@ -85,23 +83,23 @@ func main() {
         }
 
         segments[i] = segmentResult{
-            MarkerId: s.MarkerId,
+            MarkerId:   s.MarkerId,
             MarkerName: s.MarkerName,
-            Offset: s.Offset,
-            Length: len(s.Data),
-            Data: data,
+            Offset:     s.Offset,
+            Length:     len(s.Data),
+            Data:       data,
         }
 
         sii := segmentIndexItem{
             Offset: s.Offset,
             Length: len(s.Data),
-            Data: data,
+            Data:   data,
         }
 
         if grouped, found := segmentIndex[s.MarkerName]; found == true {
             segmentIndex[s.MarkerName] = append(grouped, sii)
         } else {
-            segmentIndex[s.MarkerName] = []segmentIndexItem { sii }
+            segmentIndex[s.MarkerName] = []segmentIndexItem{sii}
         }
     }
 

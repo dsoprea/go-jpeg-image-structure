@@ -34,6 +34,15 @@ type SegmentIndexItem struct {
 }
 
 func main() {
+	defer func() {
+		if errRaw := recover(); errRaw != nil {
+			err := errRaw.(error)
+			log.PrintError(err)
+
+			os.Exit(-2)
+		}
+	}()
+
 	_, err := flags.Parse(options)
 	if err != nil {
 		os.Exit(-1)

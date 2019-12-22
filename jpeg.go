@@ -363,7 +363,7 @@ func (sl *SegmentList) ConstructExifBuilder() (rootIb *exif.IfdBuilder, err erro
 }
 
 // DumpExif returns an unstructured list of tags (useful when just reviewing).
-func (sl *SegmentList) DumpExif() (segmentIndex int, segment *Segment, exifTags []ExifTag, err error) {
+func (sl *SegmentList) DumpExif() (segmentIndex int, segment *Segment, exifTags []exif.ExifTag, err error) {
 	defer func() {
 		if state := recover(); state != nil {
 			err = log.Wrap(state.(error))
@@ -379,7 +379,7 @@ func (sl *SegmentList) DumpExif() (segmentIndex int, segment *Segment, exifTags 
 		log.Panic(err)
 	}
 
-	exifTags, err = GetFlatExifData(s.Data[len(ExifPrefix):])
+	exifTags, err = exif.GetFlatExifData(s.Data[len(ExifPrefix):])
 	log.PanicIf(err)
 
 	return segmentIndex, s, exifTags, nil
