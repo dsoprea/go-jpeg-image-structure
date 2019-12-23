@@ -1,9 +1,9 @@
 package jpegstructure
 
 import (
-    "testing"
     "os"
     "path"
+    "testing"
 
     "io/ioutil"
 
@@ -27,42 +27,42 @@ func TestJpegMediaParser_ParseSegments(t *testing.T) {
     sl, err := jmp.Parse(f, int(size))
     log.PanicIf(err)
 
-    expected := []*Segment {
+    expected := []*Segment{
         &Segment{
             MarkerId: 0xd8,
-            Offset: 0x0,
+            Offset:   0x0,
         },
         &Segment{
             MarkerId: 0xe1,
-            Offset: 0x2,
+            Offset:   0x2,
         },
         &Segment{
             MarkerId: 0xe1,
-            Offset: 0x000080b4,
+            Offset:   0x000080b4,
         },
         &Segment{
             MarkerId: 0xdb,
-            Offset: 0x8ab6,
+            Offset:   0x8ab6,
         },
         &Segment{
             MarkerId: 0xc0,
-            Offset: 0x8b3c,
+            Offset:   0x8b3c,
         },
         &Segment{
             MarkerId: 0xc4,
-            Offset: 0x8b4f,
+            Offset:   0x8b4f,
         },
         &Segment{
             MarkerId: 0xda,
-            Offset: 0x8cf3,
+            Offset:   0x8cf3,
         },
         &Segment{
             MarkerId: 0x0,
-            Offset: 0x8cf5,
+            Offset:   0x8cf5,
         },
         &Segment{
             MarkerId: 0xd9,
-            Offset: 0x554d6d,
+            Offset:   0x554d6d,
         },
     }
 
@@ -90,42 +90,42 @@ func TestJpegMediaParser_ParseBytesStructure(t *testing.T) {
     sl, err := jmp.ParseBytes(data)
     log.PanicIf(err)
 
-    expectedSegments := []*Segment {
+    expectedSegments := []*Segment{
         &Segment{
             MarkerId: 0xd8,
-            Offset: 0x0,
+            Offset:   0x0,
         },
         &Segment{
             MarkerId: 0xe1,
-            Offset: 0x2,
+            Offset:   0x2,
         },
         &Segment{
             MarkerId: 0xe1,
-            Offset: 0x000080b4,
+            Offset:   0x000080b4,
         },
         &Segment{
             MarkerId: 0xdb,
-            Offset: 0x8ab6,
+            Offset:   0x8ab6,
         },
         &Segment{
             MarkerId: 0xc0,
-            Offset: 0x8b3c,
+            Offset:   0x8b3c,
         },
         &Segment{
             MarkerId: 0xc4,
-            Offset: 0x8b4f,
+            Offset:   0x8b4f,
         },
         &Segment{
             MarkerId: 0xda,
-            Offset: 0x8cf3,
+            Offset:   0x8cf3,
         },
         &Segment{
             MarkerId: 0x0,
-            Offset: 0x8cf5,
+            Offset:   0x8cf5,
         },
         &Segment{
             MarkerId: 0xd9,
-            Offset: 0x554d6d,
+            Offset:   0x554d6d,
         },
     }
 
@@ -152,6 +152,14 @@ func TestJpegMediaParser_ParseBytesStructure_Offsets(t *testing.T) {
 }
 
 func TestJpegMediaParser_ParseBytesStructure_MultipleEois(t *testing.T) {
+    defer func() {
+        if state := recover(); state != nil {
+            err := log.Wrap(state.(error))
+            log.PrintErrorf(err, "Test failure.")
+            t.Fatalf("Test failure.")
+        }
+    }()
+
     filepath := path.Join(assetsPath, "IMG_6691_Multiple_EOIs.jpg")
 
     data, err := ioutil.ReadFile(filepath)
@@ -162,46 +170,46 @@ func TestJpegMediaParser_ParseBytesStructure_MultipleEois(t *testing.T) {
     sl, err := jmp.ParseBytes(data)
     log.PanicIf(err)
 
-    expectedSegments := []*Segment {
+    expectedSegments := []*Segment{
         &Segment{
             MarkerId: 0xd8,
-            Offset: 0x0,
+            Offset:   0x0,
         },
         &Segment{
             MarkerId: 0xe1,
-            Offset: 0x00000002,
+            Offset:   0x00000002,
         },
         &Segment{
             MarkerId: 0xe1,
-            Offset: 0x00007002,
+            Offset:   0x00007002,
         },
         &Segment{
             MarkerId: 0xe2,
-            Offset: 0x00007fa0,
+            Offset:   0x00007fa0,
         },
         &Segment{
             MarkerId: 0xdb,
-            Offset: 0x00008002,
+            Offset:   0x00008002,
         },
         &Segment{
             MarkerId: 0xc0,
-            Offset: 0x00008088,
+            Offset:   0x00008088,
         },
         &Segment{
             MarkerId: 0xc4,
-            Offset: 0x0000809b,
+            Offset:   0x0000809b,
         },
         &Segment{
             MarkerId: 0xda,
-            Offset: 0x0000823f,
+            Offset:   0x0000823f,
         },
         &Segment{
             MarkerId: 0x0,
-            Offset: 0x00008241,
+            Offset:   0x00008241,
         },
         &Segment{
             MarkerId: 0xd9,
-            Offset: 0x00487540,
+            Offset:   0x00487540,
         },
     }
 

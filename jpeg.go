@@ -589,7 +589,7 @@ func (js *JpegSplitter) processScanData(data []byte) (advanceBytes int, err erro
 	return dataLength, nil
 }
 
-func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byte, err error) {
+func (js *JpegSplitter) readSegment(data []byte) (count int, err error) {
 	defer func() {
 		if state := recover(); state != nil {
 			err = log.Wrap(state.(error))
@@ -601,11 +601,11 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 
 		if len(data) < 3 {
 			jpegLogger.Debugf(nil, "Not enough (1)")
-			return 0, nil, nil
+			return 0, nil
 		}
 
 		if data[0] == jpegMagic2000[0] && data[1] == jpegMagic2000[1] && data[2] == jpegMagic2000[2] {
-			// TODO(dustin): Return to JPEG2000 support.
+			// TODO(dustin): Revisit JPEG2000 support.
 			log.Panicf("JPEG2000 not supported")
 		}
 
@@ -631,14 +631,15 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 		// This will either return 0 and implicitly request that we need more
 		// data and then need to run again or will return an actual byte count
 		// to progress by.
-		return advanceBytes, nil, nil
+
+		return advanceBytes, nil
 	} else if js.lastMarkerId == MARKER_EOI {
 		// We have more data following the EOI, which is unexpected. There
 		// might be non-standard cruft at the end of the file. Terminate the
 		// parse because the file-structure is, technically, complete at this
 		// point.
 
-		return 0, nil, io.EOF
+		return 0, io.EOF
 	} else {
 		js.lastIsScanData = false
 	}
@@ -665,7 +666,7 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 
 	if found == false || i >= chunkLength {
 		jpegLogger.Debugf(nil, "Not enough (3)")
-		return 0, nil, nil
+		return 0, nil
 	}
 
 	markerId := data[i]
@@ -685,6 +686,7 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 	headerSize := 2 + sizeLen
 
 	if found == false {
+
 		// It's not one of the static-length markers. Read the length.
 		//
 		// The length is an unsigned 16-bit network/big-endian.
@@ -694,7 +696,7 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 
 		if i+2 >= chunkLength {
 			jpegLogger.Debugf(nil, "Not enough (4)")
-			return 0, nil, nil
+			return 0, nil
 		}
 
 		len_ := uint16(0)
@@ -711,6 +713,7 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 
 		i += 2
 	} else if sizeLen > 0 {
+
 		// Accomodates the non-zero markers in our marker index, which only
 		// represent J2C extensions.
 		//
@@ -724,7 +727,7 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 
 		if i+4 >= chunkLength {
 			jpegLogger.Debugf(nil, "Not enough (5)")
-			return 0, nil, nil
+			return 0, nil
 		}
 
 		len_ := uint32(0)
@@ -749,7 +752,7 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 
 	if i > chunkLength {
 		jpegLogger.Debugf(nil, "Not enough (6)")
-		return 0, nil, nil
+		return 0, nil
 	}
 
 	jpegLogger.Debugf(nil, "Found whole segment.")
@@ -764,7 +767,37 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 
 	jpegLogger.Debugf(nil, "Returning advance of (%d)", i)
 
-	return i, nil, nil
+	return i, nil
+}
+
+func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+	for len(data) > 0 {
+		currentAdvance, err := js.readSegment(data)
+		if err != nil {
+			if err == io.EOF {
+				// We've encountered an EOI marker.
+				return 0, nil, err
+			}
+
+			log.Panic(err)
+		}
+
+		if currentAdvance == 0 {
+			// We don't have enough data for another segment.
+			break
+		}
+
+		data = data[currentAdvance:]
+		advance += currentAdvance
+	}
+
+	return advance, nil, nil
 }
 
 func (js *JpegSplitter) parseSof(data []byte) (sof *SofSegment, err error) {
