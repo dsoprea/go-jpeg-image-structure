@@ -80,14 +80,18 @@ func main() {
 
 		fmt.Println(string(raw))
 	} else {
-		for i, tag := range et {
-			fmt.Printf("%2d: IFD-PATH=[%s] ID=(0x%02x) NAME=[%s] TYPE=(%d):[%s] VALUE=[%v]", i, tag.IfdPath, tag.TagId, tag.TagName, tag.TagTypeId, tag.TagTypeName, tag.Value)
+		if len(et) == 0 {
+			fmt.Printf("EXIF data is present but empty.\n")
+		} else {
+			for i, tag := range et {
+				fmt.Printf("%2d: IFD-PATH=[%s] ID=(0x%02x) NAME=[%s] TYPE=(%d):[%s] VALUE=[%v]", i, tag.IfdPath, tag.TagId, tag.TagName, tag.TagTypeId, tag.TagTypeName, tag.Value)
 
-			if tag.ChildIfdPath != "" {
-				fmt.Printf(" CHILD-IFD-PATH=[%s]", tag.ChildIfdPath)
+				if tag.ChildIfdPath != "" {
+					fmt.Printf(" CHILD-IFD-PATH=[%s]", tag.ChildIfdPath)
+				}
+
+				fmt.Printf("\n")
 			}
-
-			fmt.Printf("\n")
 		}
 	}
 }

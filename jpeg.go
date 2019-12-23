@@ -214,6 +214,19 @@ func (s *Segment) Exif() (rootIfd *exif.Ifd, data []byte, err error) {
 	return index.RootIfd, rawExif, nil
 }
 
+func (s *Segment) EmbeddedString() string {
+	h := sha1.New()
+	h.Write(s.Data)
+
+	digestString := hex.EncodeToString(h.Sum(nil))
+
+	return fmt.Sprintf("OFFSET=(0x%08x %10d) ID=(0x%08x) NAME=[%-4s] SIZE=(%10d) SHA1=[%s]", s.Offset, s.Offset, s.MarkerId, markerNames[s.MarkerId], len(s.Data), digestString)
+}
+
+func (s *Segment) String() string {
+	return fmt.Sprintf("Segment<%s>", s.EmbeddedString())
+}
+
 type SegmentList struct {
 	segments []*Segment
 }
@@ -255,12 +268,7 @@ func (sl *SegmentList) Print() {
 		fmt.Printf("No segments.\n")
 	} else {
 		for i, s := range sl.segments {
-			h := sha1.New()
-			h.Write(s.Data)
-
-			digestString := hex.EncodeToString(h.Sum(nil))
-
-			fmt.Printf("% 2d: OFFSET=(0x%08x %10d) ID=(0x%08x) NAME=[%-4s] SIZE=(%10d) SHA1=[%s]\n", i, s.Offset, s.Offset, s.MarkerId, markerNames[s.MarkerId], len(s.Data), digestString)
+			fmt.Printf("% 2d: %s\n", i, s.EmbeddedString())
 		}
 	}
 }
