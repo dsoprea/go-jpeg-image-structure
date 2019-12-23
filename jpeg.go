@@ -408,12 +408,14 @@ func (sl *SegmentList) SetExif(ib *exif.IfdBuilder) (err error) {
 
 		s = makeEmptyExifSegment()
 
+		prefix := sl.segments[:1]
+
 		// Install it near the beginning where we know it's safe. We can't
 		// insert it after the EOI segment, and there might be more than one
 		// depending on implementation and/or lax adherence to the standard.
-		tail := sl.segments[1:]
-		sl.segments = append(sl.segments[:1], s)
-		sl.segments = append(sl.segments, tail...)
+		tail := append([]*Segment{s}, sl.segments[1:]...)
+
+		sl.segments = append(prefix, tail...)
 	}
 
 	err = s.SetExif(ib)

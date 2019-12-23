@@ -417,7 +417,7 @@ func TestSegmentList_SetExif(t *testing.T) {
 	err := sl.SetExif(ib)
 	log.PanicIf(err)
 
-	exifSegment := sl.Segments()[2]
+	exifSegment := sl.Segments()[1]
 
 	if exifSegment.MarkerId != MARKER_APP1 {
 		t.Fatalf("New segment is not correct.")
@@ -437,7 +437,7 @@ func TestSegmentList_SetExif(t *testing.T) {
 	err = sl.SetExif(ib)
 	log.PanicIf(err)
 
-	exifSegment = sl.Segments()[2]
+	exifSegment = sl.Segments()[1]
 
 	if len(sl.Segments()) != 5 {
 		t.Fatalf("Segment count not correct.")
