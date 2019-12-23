@@ -564,7 +564,7 @@ func TestSegmentList_FindExif(t *testing.T) {
 		t.Fatalf("exif not found in right position: (%d)", segmentNumber)
 	}
 
-	exifFilepath := fmt.Sprintf("%s.exif", imageFilepath)
+	exifFilepath := fmt.Sprintf("%s.just_exif", imageFilepath)
 
 	expectedExifBytes, err := ioutil.ReadFile(exifFilepath)
 	log.PanicIf(err)
@@ -599,7 +599,7 @@ func TestSegmentList_Exif(t *testing.T) {
 		t.Fatalf("root IFD does not have correct identity")
 	}
 
-	exifFilepath := fmt.Sprintf("%s.exif", imageFilepath)
+	exifFilepath := fmt.Sprintf("%s.just_exif", imageFilepath)
 
 	expectedExifBytes, err := ioutil.ReadFile(exifFilepath)
 	log.PanicIf(err)
@@ -637,7 +637,7 @@ func TestSegment_Exif(t *testing.T) {
 		t.Fatalf("root IFD does not have correct identity")
 	}
 
-	exifFilepath := fmt.Sprintf("%s.exif", imageFilepath)
+	exifFilepath := fmt.Sprintf("%s.just_exif", imageFilepath)
 
 	expectedExifBytes, err := ioutil.ReadFile(exifFilepath)
 	log.PanicIf(err)
