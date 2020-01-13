@@ -12,7 +12,9 @@ import (
 
 	"io/ioutil"
 
-	"github.com/dsoprea/go-exif"
+	"github.com/dsoprea/go-exif/v2"
+	"github.com/dsoprea/go-exif/v2/common"
+	"github.com/dsoprea/go-exif/v2/undefined"
 	"github.com/dsoprea/go-logging"
 )
 
@@ -205,14 +207,14 @@ func TestSegment_SetExif_Update(t *testing.T) {
 	rootIb, err := sl.ConstructExifBuilder()
 	log.PanicIf(err)
 
-	i, err := rootIb.Find(exif.IfdExifId)
+	i, err := rootIb.Find(exifcommon.IfdExifId)
 	log.PanicIf(err)
 
 	exifBt := rootIb.Tags()[i]
 	exifIb := exifBt.Value().Ib()
 
-	uc := exif.TagUnknownType_9298_UserComment{
-		EncodingType:  exif.TagUnknownType_9298_UserComment_Encoding_ASCII,
+	uc := exifundefined.Tag9286UserComment{
+		EncodingType:  exifundefined.TagUndefinedType_9286_UserComment_Encoding_ASCII,
 		EncodingBytes: []byte("TEST COMMENT"),
 	}
 
@@ -239,7 +241,7 @@ func TestSegment_SetExif_Update(t *testing.T) {
 	rootIfd, _, err := recoveredSl.Exif()
 	log.PanicIf(err)
 
-	exifIfd, err := rootIfd.ChildWithIfdPath(exif.IfdPathStandardExif)
+	exifIfd, err := rootIfd.ChildWithIfdPath(exifcommon.IfdPathStandardExif)
 	log.PanicIf(err)
 
 	results, err := exifIfd.FindTagWithName("UserComment")
@@ -247,11 +249,11 @@ func TestSegment_SetExif_Update(t *testing.T) {
 
 	ucIte := results[0]
 
-	if ucIte.TagId != 0x9286 {
+	if ucIte.TagId() != 0x9286 {
 		t.Fatalf("tag-ID not correct")
 	}
 
-	recoveredValueBytes, err := exifIfd.TagValueBytes(ucIte)
+	recoveredValueBytes, err := ucIte.GetRawBytes()
 	log.PanicIf(err)
 
 	expectedValueBytes := make([]byte, 0)
@@ -281,7 +283,7 @@ func TestSegment_SetExif_FromScratch(t *testing.T) {
 	err := exif.LoadStandardTags(ti)
 	log.PanicIf(err)
 
-	rootIb := exif.NewIfdBuilder(im, ti, exif.IfdPathStandard, exif.EncodeDefaultByteOrder)
+	rootIb := exif.NewIfdBuilder(im, ti, exifcommon.IfdPathStandard, exifcommon.EncodeDefaultByteOrder)
 
 	err = rootIb.AddStandardWithName("ProcessingSoftware", "some software")
 	log.PanicIf(err)
@@ -303,11 +305,11 @@ func TestSegment_SetExif_FromScratch(t *testing.T) {
 
 	ucIte := results[0]
 
-	if ucIte.TagId != 0x000b {
+	if ucIte.TagId() != 0x000b {
 		t.Fatalf("tag-ID not correct")
 	}
 
-	recoveredValueRaw, err := rootIfd.TagValue(ucIte)
+	recoveredValueRaw, err := ucIte.Value()
 	log.PanicIf(err)
 
 	recoveredValue := recoveredValueRaw.(string)
@@ -351,7 +353,7 @@ func TestSegmentList_SetExif_FromScratch(t *testing.T) {
 	err = exif.LoadStandardTags(ti)
 	log.PanicIf(err)
 
-	rootIb := exif.NewIfdBuilder(im, ti, exif.IfdPathStandard, exif.EncodeDefaultByteOrder)
+	rootIb := exif.NewIfdBuilder(im, ti, exifcommon.IfdPathStandard, exifcommon.EncodeDefaultByteOrder)
 
 	err = rootIb.AddStandardWithName("ProcessingSoftware", "some software")
 	log.PanicIf(err)
@@ -379,11 +381,11 @@ func TestSegmentList_SetExif_FromScratch(t *testing.T) {
 
 	ucIte := results[0]
 
-	if ucIte.TagId != 0x000b {
+	if ucIte.TagId() != 0x000b {
 		t.Fatalf("tag-ID not correct")
 	}
 
-	recoveredValueRaw, err := rootIfd.TagValue(ucIte)
+	recoveredValueRaw, err := ucIte.Value()
 	log.PanicIf(err)
 
 	recoveredValue := recoveredValueRaw.(string)
@@ -411,7 +413,7 @@ func TestSegmentList_SetExif(t *testing.T) {
 	im := exif.NewIfdMappingWithStandard()
 	ti := exif.NewTagIndex()
 
-	ib := exif.NewIfdBuilder(im, ti, exif.IfdPathStandard, exif.TestDefaultByteOrder)
+	ib := exif.NewIfdBuilder(im, ti, exifcommon.IfdPathStandard, exifcommon.TestDefaultByteOrder)
 	ib.AddStandardWithName("ProcessingSoftware", "some software")
 
 	err := sl.SetExif(ib)
@@ -431,7 +433,7 @@ func TestSegmentList_SetExif(t *testing.T) {
 	sl.Add(&Segment{MarkerId: 0})
 	sl.Add(&Segment{MarkerId: 0})
 
-	ib = exif.NewIfdBuilder(im, ti, exif.IfdPathStandard, exif.TestDefaultByteOrder)
+	ib = exif.NewIfdBuilder(im, ti, exifcommon.IfdPathStandard, exifcommon.TestDefaultByteOrder)
 	ib.AddStandardWithName("ProcessingSoftware", "some software2")
 
 	err = sl.SetExif(ib)
@@ -472,8 +474,8 @@ func ExampleSegmentList_SetExif_unknowntype() {
 	exifIb, err := exif.GetOrCreateIbFromRootIb(rootIb, ifdPath)
 	log.PanicIf(err)
 
-	uc := exif.TagUnknownType_9298_UserComment{
-		EncodingType:  exif.TagUnknownType_9298_UserComment_Encoding_ASCII,
+	uc := exifundefined.Tag9286UserComment{
+		EncodingType:  exifundefined.TagUndefinedType_9286_UserComment_Encoding_ASCII,
 		EncodingBytes: []byte("TEST COMMENT"),
 	}
 
@@ -595,7 +597,7 @@ func TestSegmentList_Exif(t *testing.T) {
 	rootIfd, data, err := sl.Exif()
 	log.PanicIf(err)
 
-	if rootIfd.IfdPath != exif.IfdPathStandard {
+	if rootIfd.IfdPath != exifcommon.IfdPathStandard {
 		t.Fatalf("root IFD does not have correct identity")
 	}
 
@@ -633,7 +635,7 @@ func TestSegment_Exif(t *testing.T) {
 	rootIfd, data, err := s.Exif()
 	log.PanicIf(err)
 
-	if rootIfd.IfdPath != exif.IfdPathStandard {
+	if rootIfd.IfdPath != exifcommon.IfdPathStandard {
 		t.Fatalf("root IFD does not have correct identity")
 	}
 

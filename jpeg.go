@@ -10,7 +10,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 
-	"github.com/dsoprea/go-exif"
+	"github.com/dsoprea/go-exif/v2"
 	"github.com/dsoprea/go-logging"
 )
 
@@ -361,11 +361,10 @@ func (sl *SegmentList) ConstructExifBuilder() (rootIb *exif.IfdBuilder, err erro
 		}
 	}()
 
-	rootIfd, data, err := sl.Exif()
+	rootIfd, _, err := sl.Exif()
 	log.PanicIf(err)
 
-	itevr := exif.NewIfdTagEntryValueResolver(data[len(ExifPrefix):], rootIfd.ByteOrder)
-	ib := exif.NewIfdBuilderFromExistingChain(rootIfd, itevr)
+	ib := exif.NewIfdBuilderFromExistingChain(rootIfd)
 
 	return ib, nil
 }

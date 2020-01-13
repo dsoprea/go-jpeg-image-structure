@@ -2,6 +2,9 @@ language: go
 go:
   - master
   - stable
+  - "1.13"
+  - "1.12"
+  - "1.11"
   - "1.10"
   - "1.9"
   - "1.8"
@@ -9,4 +12,6 @@ install:
   - go get -t ./...
   - go get github.com/mattn/goveralls
 script:
-  - goveralls -v -service=travis-ci
+  - go test -v .
+  - go test -v ./command/...
+  - JPEG_MODULE_ROOT_PATH="$(pwd)" goveralls -v -service=travis-ci

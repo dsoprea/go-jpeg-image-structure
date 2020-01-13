@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
-	"github.com/dsoprea/go-exif"
+	"github.com/dsoprea/go-exif/v2"
 	"github.com/dsoprea/go-jpeg-image-structure"
 	"github.com/dsoprea/go-logging"
 	"github.com/jessevdk/go-flags"

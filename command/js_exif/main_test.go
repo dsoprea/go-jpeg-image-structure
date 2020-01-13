@@ -26,6 +26,9 @@ type JsonResultExifTag struct {
 }
 
 func TestMain_Plain_Exif(t *testing.T) {
+	assetsPath := getTestAssetsPath()
+	appFilepath := getAppFilepath()
+
 	imageFilepath := path.Join(assetsPath, "NDM_8901.jpg")
 
 	cmd := exec.Command(
@@ -66,7 +69,7 @@ func TestMain_Plain_Exif(t *testing.T) {
 18: IFD-PATH=[IFD/Exif] ID=(0x9000) NAME=[ExifVersion] TYPE=(7):[UNDEFINED] VALUE=[0230]
 19: IFD-PATH=[IFD/Exif] ID=(0x9003) NAME=[DateTimeOriginal] TYPE=(2):[ASCII] VALUE=[2017:12:02 08:18:50]
 20: IFD-PATH=[IFD/Exif] ID=(0x9004) NAME=[DateTimeDigitized] TYPE=(2):[ASCII] VALUE=[2017:12:02 08:18:50]
-21: IFD-PATH=[IFD/Exif] ID=(0x9101) NAME=[ComponentsConfiguration] TYPE=(7):[UNDEFINED] VALUE=[ComponentsConfiguration<ID=[YCBCR] BYTES=[1 2 3 0]>]
+21: IFD-PATH=[IFD/Exif] ID=(0x9101) NAME=[ComponentsConfiguration] TYPE=(7):[UNDEFINED] VALUE=[Exif9101ComponentsConfiguration<ID=[YCBCR] BYTES=[1 2 3 0]>]
 22: IFD-PATH=[IFD/Exif] ID=(0x9201) NAME=[ShutterSpeedValue] TYPE=(10):[SRATIONAL] VALUE=[[{614400 65536}]]
 23: IFD-PATH=[IFD/Exif] ID=(0x9202) NAME=[ApertureValue] TYPE=(5):[RATIONAL] VALUE=[[{262144 65536}]]
 24: IFD-PATH=[IFD/Exif] ID=(0x9204) NAME=[ExposureBiasValue] TYPE=(10):[SRATIONAL] VALUE=[[{0 1}]]
@@ -113,6 +116,9 @@ func TestMain_Plain_Exif(t *testing.T) {
 }
 
 func TestMain_Json_Exif(t *testing.T) {
+	assetsPath := getTestAssetsPath()
+	appFilepath := getAppFilepath()
+
 	imageFilepath := path.Join(assetsPath, "NDM_8901.jpg")
 
 	cmd := exec.Command(
@@ -144,9 +150,54 @@ func TestMain_Json_Exif(t *testing.T) {
 	}
 }
 
-func init() {
-	goPath := os.Getenv("GOPATH")
+func GetModuleRootPath() string {
+	moduleRootPath := os.Getenv("JPEG_MODULE_ROOT_PATH")
+	if moduleRootPath != "" {
+		return moduleRootPath
+	}
 
-	assetsPath = path.Join(goPath, "src", "github.com", "dsoprea", "go-jpeg-image-structure", "assets")
-	appFilepath = path.Join(goPath, "src", "github.com", "dsoprea", "go-jpeg-image-structure", "command", "js_exif", "main.go")
+	currentWd, err := os.Getwd()
+	log.PanicIf(err)
+
+	currentPath := currentWd
+	visited := make([]string, 0)
+
+	for {
+		tryStampFilepath := path.Join(currentPath, ".MODULE_ROOT")
+
+		_, err := os.Stat(tryStampFilepath)
+		if err != nil && os.IsNotExist(err) != true {
+			log.Panic(err)
+		} else if err == nil {
+			break
+		}
+
+		visited = append(visited, tryStampFilepath)
+
+		currentPath = path.Dir(currentPath)
+		if currentPath == "/" {
+			log.Panicf("could not find module-root: %v", visited)
+		}
+	}
+
+	return currentPath
+}
+
+func getTestAssetsPath() string {
+	if assetsPath == "" {
+		moduleRootPath := GetModuleRootPath()
+		assetsPath = path.Join(moduleRootPath, "assets")
+	}
+
+	return assetsPath
+}
+
+func getTestImageFilepath() string {
+	assetsPath := getTestAssetsPath()
+	return path.Join(assetsPath, "NDM_8901.jpg")
+}
+
+func getAppFilepath() string {
+	moduleRootPath := GetModuleRootPath()
+	return path.Join(moduleRootPath, "command", "js_exif", "main.go")
 }

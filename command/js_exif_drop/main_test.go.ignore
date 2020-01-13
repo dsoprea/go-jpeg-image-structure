@@ -26,7 +26,8 @@ type JsonResultExifTag struct {
 }
 
 func TestMain_Plain_Exif(t *testing.T) {
-	imageFilepath := path.Join(assetsPath, "NDM_8901.jpg")
+	appFilepath := getAppFilepath()
+	imageFilepath := getTestImageFilepath()
 
 	cmd := exec.Command(
 		"go", "run", appFilepath,
@@ -113,7 +114,8 @@ func TestMain_Plain_Exif(t *testing.T) {
 }
 
 func TestMain_Json_Exif(t *testing.T) {
-	imageFilepath := path.Join(assetsPath, "NDM_8901.jpg")
+	appFilepath := getAppFilepath()
+	imageFilepath := getTestImageFilepath()
 
 	cmd := exec.Command(
 		"go", "run", appFilepath,
@@ -144,9 +146,21 @@ func TestMain_Json_Exif(t *testing.T) {
 	}
 }
 
-func init() {
-	goPath := os.Getenv("GOPATH")
+func getTestAssetsPath() string {
+	if assetsPath == "" {
+		moduleRootPath := GetModuleRootPath()
+		assetsPath = path.Join(moduleRootPath, "assets")
+	}
 
-	assetsPath = path.Join(goPath, "src", "github.com", "dsoprea", "go-jpeg-image-structure", "assets")
-	appFilepath = path.Join(goPath, "src", "github.com", "dsoprea", "go-jpeg-image-structure", "command", "js_exif", "main.go")
+	return assetsPath
+}
+
+func getTestImageFilepath() string {
+	assetsPath := getTestAssetsPath()
+	return path.Join(assetsPath, "NDM_8901.jpg")
+}
+
+func getAppFilepath() string {
+	moduleRootPath := GetModuleRootPath()
+	return path.Join(moduleRootPath, "command", "js_exif", "main.go")
 }
