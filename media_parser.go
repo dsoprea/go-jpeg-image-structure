@@ -8,6 +8,7 @@ import (
     "os"
 
     "github.com/dsoprea/go-logging"
+    "github.com/dsoprea/go-utility/image"
 )
 
 var (
@@ -23,7 +24,7 @@ func NewJpegMediaParser() *JpegMediaParser {
     return new(JpegMediaParser)
 }
 
-func (jmp *JpegMediaParser) Parse(r io.Reader, size int) (intfc interface{}, err error) {
+func (jmp *JpegMediaParser) Parse(r io.Reader, size int) (ec riimage.MediaContext, err error) {
     defer func() {
         if state := recover(); state != nil {
             err = log.Wrap(state.(error))
@@ -55,7 +56,7 @@ func (jmp *JpegMediaParser) Parse(r io.Reader, size int) (intfc interface{}, err
     return js.Segments(), nil
 }
 
-func (jmp *JpegMediaParser) ParseFile(filepath string) (intfc interface{}, err error) {
+func (jmp *JpegMediaParser) ParseFile(filepath string) (ec riimage.MediaContext, err error) {
     defer func() {
         if state := recover(); state != nil {
             err = log.Wrap(state.(error))
@@ -76,7 +77,7 @@ func (jmp *JpegMediaParser) ParseFile(filepath string) (intfc interface{}, err e
     return sl, nil
 }
 
-func (jmp *JpegMediaParser) ParseBytes(data []byte) (intfc interface{}, err error) {
+func (jmp *JpegMediaParser) ParseBytes(data []byte) (ec riimage.MediaContext, err error) {
     defer func() {
         if state := recover(); state != nil {
             err = log.Wrap(state.(error))
