@@ -131,11 +131,11 @@ func TestSegmentList_Write(t *testing.T) {
 	data, err := ioutil.ReadFile(filepath)
 	log.PanicIf(err)
 
-	r := bytes.NewBuffer(data)
+	br := bytes.NewReader(data)
 
 	jmp := NewJpegMediaParser()
 
-	intfc, err := jmp.Parse(r, len(data))
+	intfc, err := jmp.Parse(br, len(data))
 	log.PanicIf(err)
 
 	sl := intfc.(*SegmentList)

@@ -24,14 +24,14 @@ func NewJpegMediaParser() *JpegMediaParser {
     return new(JpegMediaParser)
 }
 
-func (jmp *JpegMediaParser) Parse(r io.Reader, size int) (ec riimage.MediaContext, err error) {
+func (jmp *JpegMediaParser) Parse(rs io.ReadSeeker, size int) (ec riimage.MediaContext, err error) {
     defer func() {
         if state := recover(); state != nil {
             err = log.Wrap(state.(error))
         }
     }()
 
-    s := bufio.NewScanner(r)
+    s := bufio.NewScanner(rs)
 
     // Since each segment can be any size, our buffer must allowed to grow as
     // large as the file.
@@ -84,9 +84,9 @@ func (jmp *JpegMediaParser) ParseBytes(data []byte) (ec riimage.MediaContext, er
         }
     }()
 
-    b := bytes.NewBuffer(data)
+    br := bytes.NewReader(data)
 
-    sl, err := jmp.Parse(b, len(data))
+    sl, err := jmp.Parse(br, len(data))
     log.PanicIf(err)
 
     return sl, nil
@@ -104,3 +104,8 @@ func (jmp *JpegMediaParser) LooksLikeFormat(data []byte) bool {
 
     return true
 }
+
+var (
+    // Enforce that `JpegMediaParser` looks like a `riimage.MediaParser`.
+    _ riimage.MediaParser = new(JpegMediaParser)
+)
