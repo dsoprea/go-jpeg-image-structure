@@ -669,6 +669,7 @@ func (js *JpegSplitter) readSegment(data []byte) (count int, err error) {
 	}
 
 	markerId := data[i]
+
 	jpegLogger.Debugf(nil, "MARKER-ID=%x", markerId)
 
 	js.lastMarkerName = markerNames[markerId]

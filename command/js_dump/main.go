@@ -70,8 +70,10 @@ func main() {
 
     jmp := jpegstructure.NewJpegMediaParser()
 
-    sl, err := jmp.ParseBytes(data)
+    intfc, err := jmp.ParseBytes(data)
     log.PanicIf(err)
+
+    sl := intfc.(*jpegstructure.SegmentList)
 
     segments := make([]segmentResult, len(sl.Segments()))
     segmentIndex := make(map[string][]segmentIndexItem)

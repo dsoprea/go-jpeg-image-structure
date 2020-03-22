@@ -24,8 +24,10 @@ func TestJpegMediaParser_ParseSegments(t *testing.T) {
 
     jmp := NewJpegMediaParser()
 
-    sl, err := jmp.Parse(f, int(size))
+    intfc, err := jmp.Parse(f, int(size))
     log.PanicIf(err)
+
+    sl := intfc.(*SegmentList)
 
     expected := []*Segment{
         &Segment{
@@ -87,8 +89,10 @@ func TestJpegMediaParser_ParseBytesStructure(t *testing.T) {
 
     jmp := NewJpegMediaParser()
 
-    sl, err := jmp.ParseBytes(data)
+    intfc, err := jmp.ParseBytes(data)
     log.PanicIf(err)
+
+    sl := intfc.(*SegmentList)
 
     expectedSegments := []*Segment{
         &Segment{
@@ -144,8 +148,10 @@ func TestJpegMediaParser_ParseBytesStructure_Offsets(t *testing.T) {
 
     jmp := NewJpegMediaParser()
 
-    sl, err := jmp.ParseBytes(data)
+    intfc, err := jmp.ParseBytes(data)
     log.PanicIf(err)
+
+    sl := intfc.(*SegmentList)
 
     err = sl.Validate(data)
     log.PanicIf(err)
@@ -167,8 +173,10 @@ func TestJpegMediaParser_ParseBytesStructure_MultipleEois(t *testing.T) {
 
     jmp := NewJpegMediaParser()
 
-    sl, err := jmp.ParseBytes(data)
+    intfc, err := jmp.ParseBytes(data)
     log.PanicIf(err)
+
+    sl := intfc.(*SegmentList)
 
     expectedSegments := []*Segment{
         &Segment{

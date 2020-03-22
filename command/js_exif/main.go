@@ -61,8 +61,10 @@ func main() {
 
 	jmp := jpegstructure.NewJpegMediaParser()
 
-	sl, err := jmp.ParseBytes(data)
+	intfc, err := jmp.ParseBytes(data)
 	log.PanicIf(err)
+
+	sl := intfc.(*jpegstructure.SegmentList)
 
 	_, _, et, err := sl.DumpExif()
 	if err != nil {

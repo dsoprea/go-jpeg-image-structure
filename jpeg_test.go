@@ -135,8 +135,10 @@ func TestSegmentList_Write(t *testing.T) {
 
 	jmp := NewJpegMediaParser()
 
-	sl, err := jmp.Parse(r, len(data))
+	intfc, err := jmp.Parse(r, len(data))
 	log.PanicIf(err)
+
+	sl := intfc.(*SegmentList)
 
 	b := new(bytes.Buffer)
 
@@ -199,8 +201,10 @@ func TestSegment_SetExif_Update(t *testing.T) {
 
 	jmp := NewJpegMediaParser()
 
-	sl, err := jmp.ParseFile(filepath)
+	intfc, err := jmp.ParseFile(filepath)
 	log.PanicIf(err)
+
+	sl := intfc.(*SegmentList)
 
 	// Update the UserComment tag.
 
@@ -235,8 +239,10 @@ func TestSegment_SetExif_Update(t *testing.T) {
 
 	// Parse the re-encoded JPEG data and validate.
 
-	recoveredSl, err := jmp.ParseBytes(recoveredBytes)
+	recoveredIntfc, err := jmp.ParseBytes(recoveredBytes)
 	log.PanicIf(err)
+
+	recoveredSl := recoveredIntfc.(*SegmentList)
 
 	rootIfd, _, err := recoveredSl.Exif()
 	log.PanicIf(err)
@@ -333,8 +339,10 @@ func TestSegmentList_SetExif_FromScratch(t *testing.T) {
 
 	jmp := NewJpegMediaParser()
 
-	sl, err := jmp.ParseFile(filepath)
+	intfc, err := jmp.ParseFile(filepath)
 	log.PanicIf(err)
+
+	sl := intfc.(*SegmentList)
 
 	// Make sure we don't start out with EXIF data.
 
@@ -370,8 +378,10 @@ func TestSegmentList_SetExif_FromScratch(t *testing.T) {
 
 	// Parse the re-encoded JPEG data and validate.
 
-	recoveredSl, err := jmp.ParseBytes(recoveredBytes)
+	recoveredIntfc, err := jmp.ParseBytes(recoveredBytes)
 	log.PanicIf(err)
+
+	recoveredSl := recoveredIntfc.(*SegmentList)
 
 	rootIfd, _, err := recoveredSl.Exif()
 	log.PanicIf(err)
@@ -461,8 +471,10 @@ func ExampleSegmentList_SetExif_unknowntype() {
 
 	jmp := NewJpegMediaParser()
 
-	sl, err := jmp.ParseFile(filepath)
+	intfc, err := jmp.ParseFile(filepath)
 	log.PanicIf(err)
+
+	sl := intfc.(*SegmentList)
 
 	// Update the UserComment tag.
 
@@ -507,8 +519,10 @@ func ExampleSegmentList_SetExif() {
 
 	jmp := NewJpegMediaParser()
 
-	sl, err := jmp.ParseFile(filepath)
+	intfc, err := jmp.ParseFile(filepath)
 	log.PanicIf(err)
+
+	sl := intfc.(*SegmentList)
 
 	// Update the UserComment tag.
 
@@ -556,8 +570,10 @@ func TestSegmentList_FindExif(t *testing.T) {
 
 	jmp := NewJpegMediaParser()
 
-	sl, err := jmp.ParseFile(imageFilepath)
+	intfc, err := jmp.ParseFile(imageFilepath)
 	log.PanicIf(err)
+
+	sl := intfc.(*SegmentList)
 
 	segmentNumber, s, err := sl.FindExif()
 	log.PanicIf(err)
@@ -591,8 +607,10 @@ func TestSegmentList_Exif(t *testing.T) {
 
 	jmp := NewJpegMediaParser()
 
-	sl, err := jmp.ParseFile(imageFilepath)
+	intfc, err := jmp.ParseFile(imageFilepath)
 	log.PanicIf(err)
+
+	sl := intfc.(*SegmentList)
 
 	rootIfd, data, err := sl.Exif()
 	log.PanicIf(err)
@@ -626,8 +644,10 @@ func TestSegment_Exif(t *testing.T) {
 
 	jmp := NewJpegMediaParser()
 
-	sl, err := jmp.ParseFile(imageFilepath)
+	intfc, err := jmp.ParseFile(imageFilepath)
 	log.PanicIf(err)
+
+	sl := intfc.(*SegmentList)
 
 	_, s, err := sl.FindExif()
 	log.PanicIf(err)
