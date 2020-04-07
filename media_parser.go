@@ -3,18 +3,11 @@ package jpegstructure
 import (
     "bufio"
     "bytes"
-    "errors"
     "io"
     "os"
 
     "github.com/dsoprea/go-logging"
     "github.com/dsoprea/go-utility/image"
-)
-
-var (
-    // ErrJpegParseStoppedEarlier is an error that's usually symptomatic of an
-    // image created by an nonstandard or exotic JPEG implementation.
-    ErrJpegParseStoppedEarlier = errors.New("processing finished before EOI encountered")
 )
 
 type JpegMediaParser struct {
@@ -45,13 +38,6 @@ func (jmp *JpegMediaParser) Parse(rs io.ReadSeeker, size int) (ec riimage.MediaC
     }
 
     log.PanicIf(s.Err())
-
-    // From time to time we encounter images that are nonconformant (or
-    // unexpected, at the very least) and disrupt our parser. This will allow
-    // us to identify those scenarios.
-    if js.MarkerId() != MARKER_EOI {
-        return nil, ErrJpegParseStoppedEarlier
-    }
 
     return js.Segments(), nil
 }
