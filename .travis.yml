@@ -6,12 +6,10 @@ go:
   - "1.12"
   - "1.11"
   - "1.10"
-  - "1.9"
-  - "1.8"
 install:
   - go get -t ./...
   - go get github.com/mattn/goveralls
 script:
   - go test -v .
   - go test -v ./command/...
-  - JPEG_MODULE_ROOT_PATH="$(pwd)" goveralls -v -service=travis-ci
+  - goveralls -v -service=travis-ci
