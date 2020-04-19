@@ -554,24 +554,38 @@ func (js *JpegSplitter) processScanData(data []byte) (advanceBytes int, err erro
 		}
 	}()
 
-	chunkLength := len(data)
+	// Search through the segment, past all 0xff's therein, until we encounter
+	// the EOI segment.
 
-	// The EOI marker follows the scan-data, there is only one allowed, and it
-	// has to be at the very end of the file. Plus, we do occasionally see the
-	// (0xff, EOI) sequence in the scan-data and it's not escaped like it
-	// should be, and the image appears to look the same whether we incldue the
-	// data after it or not (which implis there are multiple EOI's, which
-	// doesn't make sense). So, we don't know what else to do other than to
-	// take the safe approach.
-	//
-	// If the file is malformed and this isn't actually present, the split
-	// operation will fail automatically.
-	if data[chunkLength-2] != 0xff || data[chunkLength-1] != MARKER_EOI {
-		jpegLogger.Debugf(nil, "Not enough (2)")
-		return 0, nil
+	dataLength := -1
+	for i, thisByte := range data {
+		if i == 0 {
+			continue
+		}
+
+		lastByte := data[i-1]
+		if lastByte != 0xff {
+			continue
+		}
+
+		if thisByte == 0x00 || thisByte >= 0xd0 && thisByte <= 0xd8 {
+			continue
+		}
+
+		// After all of the other checks, this means that we're on the EOF
+		// segment.
+		if thisByte != MARKER_EOI {
+			continue
+		}
+
+		dataLength = i - 1
+		break
 	}
 
-	dataLength := chunkLength - 2
+	if dataLength == -1 {
+		jpegLogger.Debugf(nil, "Scan-data not fully available (%d).", len(data))
+		return 0, nil
+	}
 
 	js.lastIsScanData = true
 	js.lastMarkerId = 0
@@ -619,8 +633,8 @@ func (js *JpegSplitter) readSegment(data []byte) (count int, err error) {
 
 	if js.lastMarkerId == MARKER_SOS {
 		// If the last segment was the SOS, we're currently sitting on scan data.
-		// Search for the EOI marker aferward in order to know how much data there
-		// is. Return this as its own token.
+		// Search for the EOI marker afterward in order to know how much data
+		// there is. Return this as its own token.
 		//
 		// REF: https://stackoverflow.com/questions/26715684/parsing-jpeg-sos-marker
 
@@ -789,6 +803,10 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 		}
 
 		if currentAdvance == 0 {
+			if len(data) > 0 && atEOF == true {
+				log.Panicf("partial segment data encountered")
+			}
+
 			// We don't have enough data for another segment.
 			break
 		}

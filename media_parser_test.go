@@ -1,6 +1,7 @@
 package jpegstructure
 
 import (
+    "fmt"
     "os"
     "path"
     "testing"
@@ -217,13 +218,21 @@ func TestJpegMediaParser_ParseBytesStructure_MultipleEois(t *testing.T) {
         },
         &Segment{
             MarkerId: 0xd9,
-            Offset:   0x00487540,
+            Offset:   0x003f24db,
         },
     }
 
     expectedSl := NewSegmentList(expectedSegments)
 
     if sl.OffsetsEqual(expectedSl) != true {
+        for i, segment := range sl.segments {
+            fmt.Printf("%d: ACTUAL: MARKER=(%02x) OFF=(%10x)\n", i, segment.MarkerId, segment.Offset)
+        }
+
+        for i, segment := range expectedSl.segments {
+            fmt.Printf("%d: EXPECTED: MARKER=(%02x) OFF=(%10x)\n", i, segment.MarkerId, segment.Offset)
+        }
+
         t.Fatalf("Segments not expected")
     }
 }
