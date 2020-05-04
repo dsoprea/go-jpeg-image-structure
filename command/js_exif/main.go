@@ -61,19 +61,54 @@ func main() {
 
 	jmp := jpegstructure.NewJpegMediaParser()
 
-	intfc, err := jmp.ParseBytes(data)
-	log.PanicIf(err)
+	intfc, parseErr := jmp.ParseBytes(data)
 
-	sl := intfc.(*jpegstructure.SegmentList)
+	var et []exif.ExifTag
+	if intfc != nil {
+		// If the parse failed, we should always still get all of the segments
+		// that we've encountered so far. It should never be empty, and it
+		// should be impossible for it to be `nil`. So, if the parse failed but
+		// we still found EXIF data, just ignore the failure and proceed. We had
+		// still got what we needed.
 
-	_, _, et, err := sl.DumpExif()
-	if err != nil {
-		if err == exif.ErrNoExif {
-			fmt.Printf("No EXIF.\n")
-			os.Exit(10)
+		sl := intfc.(*jpegstructure.SegmentList)
+
+		var err error
+		_, _, et, err = sl.DumpExif()
+
+		// There was a parse error and we couldn't find/parse EXIF data. Panic
+		// with the original error from above.
+		if err != nil {
+			log.Panic(parseErr)
 		}
+	} else if parseErr == nil {
+		// We should never get a `nil` `intfc` value back *and* a `nil`
+		// `parseErr`.
+		log.Panicf("could not parse JPEG even partially")
+	} else {
+		log.Panic(parseErr)
+	}
 
-		log.Panic(err)
+	// If we get here, we either parsed the JPEG file well or at least parsed
+	// enough to find EXIF data.
+
+	if et == nil {
+		// The JPEG image parsed fine (if it didn't and we haven't yet
+		// terminated, we already extracted the EXIF tags above).
+
+		sl := intfc.(*jpegstructure.SegmentList)
+
+		var err error
+
+		_, _, et, err = sl.DumpExif()
+		if err != nil {
+			if err == exif.ErrNoExif {
+				fmt.Printf("No EXIF.\n")
+				os.Exit(10)
+			}
+
+			log.Panic(err)
+		}
 	}
 
 	if options.Json == true {
