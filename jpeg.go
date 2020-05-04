@@ -220,7 +220,7 @@ func (s *Segment) EmbeddedString() string {
 
 	digestString := hex.EncodeToString(h.Sum(nil))
 
-	return fmt.Sprintf("OFFSET=(0x%08x %10d) ID=(0x%08x) NAME=[%-5s] SIZE=(%10d) SHA1=[%s]", s.Offset, s.Offset, s.MarkerId, markerNames[s.MarkerId], len(s.Data), digestString)
+	return fmt.Sprintf("OFFSET=(0x%08x %10d) ID=(0x%02x) NAME=[%-5s] SIZE=(%10d) SHA1=[%s]", s.Offset, s.Offset, s.MarkerId, markerNames[s.MarkerId], len(s.Data), digestString)
 }
 
 func (s *Segment) String() string {
