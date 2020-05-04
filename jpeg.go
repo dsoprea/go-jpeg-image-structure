@@ -268,7 +268,7 @@ func (sl *SegmentList) Print() {
 		fmt.Printf("No segments.\n")
 	} else {
 		for i, s := range sl.segments {
-			fmt.Printf("% 2d: %s\n", i, s.EmbeddedString())
+			fmt.Printf("%2d: %s\n", i, s.EmbeddedString())
 		}
 	}
 }
