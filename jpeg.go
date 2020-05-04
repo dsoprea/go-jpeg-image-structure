@@ -518,6 +518,8 @@ type JpegSplitter struct {
 
 	currentOffset int
 	segments      *SegmentList
+
+	scandataOffset int
 }
 
 func NewJpegSplitter(visitor interface{}) *JpegSplitter {
@@ -554,13 +556,13 @@ func (js *JpegSplitter) processScanData(data []byte) (advanceBytes int, err erro
 		}
 	}()
 
-	// TODO(dustin): We can probably store the last or last-1 offset that we last searched, so that we can save *quite a bit* of time on subsequent invocations as the buffer is extended.
-
 	// Search through the segment, past all 0xff's therein, until we encounter
 	// the EOI segment.
 
 	dataLength := -1
-	for i, thisByte := range data {
+	for i := js.scandataOffset; i < len(data); i++ {
+		thisByte := data[i]
+
 		if i == 0 {
 			continue
 		}
@@ -585,6 +587,10 @@ func (js *JpegSplitter) processScanData(data []byte) (advanceBytes int, err erro
 	}
 
 	if dataLength == -1 {
+		// On the next pass, start on the last byte of this pass, just in case
+		// the first byte of the two-byte sequence is here.
+		js.scandataOffset = len(data) - 1
+
 		jpegLogger.Debugf(nil, "Scan-data not fully available (%d).", len(data))
 		return 0, nil
 	}
