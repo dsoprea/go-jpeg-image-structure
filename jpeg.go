@@ -554,6 +554,8 @@ func (js *JpegSplitter) processScanData(data []byte) (advanceBytes int, err erro
 		}
 	}()
 
+	// TODO(dustin): We can probably store the last or last-1 offset that we last searched, so that we can save *quite a bit* of time on subsequent invocations as the buffer is extended.
+
 	// Search through the segment, past all 0xff's therein, until we encounter
 	// the EOI segment.
 
@@ -631,7 +633,7 @@ func (js *JpegSplitter) readSegment(data []byte) (count int, err error) {
 
 	jpegLogger.Debugf(nil, "SPLIT: LEN=(%d) COUNTER=(%d)", chunkLength, js.counter)
 
-	if js.lastMarkerId == MARKER_SOS {
+	if js.scanDataIsNext() == true {
 		// If the last segment was the SOS, we're currently sitting on scan data.
 		// Search for the EOI marker afterward in order to know how much data
 		// there is. Return this as its own token.
@@ -683,8 +685,6 @@ func (js *JpegSplitter) readSegment(data []byte) (count int, err error) {
 	}
 
 	markerId := data[i]
-
-	jpegLogger.Debugf(nil, "MARKER-ID=%x", markerId)
 
 	js.lastMarkerName = markerNames[markerId]
 
@@ -784,6 +784,10 @@ func (js *JpegSplitter) readSegment(data []byte) (count int, err error) {
 	return i, nil
 }
 
+func (js *JpegSplitter) scanDataIsNext() bool {
+	return js.lastMarkerId == MARKER_SOS
+}
+
 func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	defer func() {
 		if state := recover(); state != nil {
@@ -804,7 +808,15 @@ func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byt
 
 		if currentAdvance == 0 {
 			if len(data) > 0 && atEOF == true {
-				log.Panicf("partial segment data encountered")
+				// Provide a little context in the error message.
+
+				if js.scanDataIsNext() == true {
+					// Yes, we've ran into this.
+
+					log.Panicf("scan-data is unbounded; EOI not encountered before EOF")
+				} else {
+					log.Panicf("partial segment data encountered before scan-data")
+				}
 			}
 
 			// We don't have enough data for another segment.
@@ -878,6 +890,8 @@ func (js *JpegSplitter) handleSegment(markerId byte, markerName string, headerSi
 		Offset:     js.currentOffset,
 		Data:       cloned,
 	}
+
+	jpegLogger.Debugf(nil, "Encountered marker (0x%02x) [%s] at offset (%d)", markerId, markerName, js.currentOffset)
 
 	js.currentOffset += headerSize + len(payload)
 
