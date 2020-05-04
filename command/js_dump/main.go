@@ -70,8 +70,13 @@ func main() {
 
     jmp := jpegstructure.NewJpegMediaParser()
 
-    intfc, err := jmp.ParseBytes(data)
-    log.PanicIf(err)
+    intfc, parseErr := jmp.ParseBytes(data)
+
+    // If there was an error *and* we got back some segments, print the segments
+    // before panicing.
+    if intfc == nil && parseErr != nil {
+        log.Panic(parseErr)
+    }
 
     sl := intfc.(*jpegstructure.SegmentList)
 
@@ -103,6 +108,17 @@ func main() {
         } else {
             segmentIndex[s.MarkerName] = []segmentIndexItem{sii}
         }
+    }
+
+    if parseErr != nil {
+        fmt.Printf("JPEG Segments (incomplete due to error):\n")
+        fmt.Printf("\n")
+
+        sl.Print()
+
+        fmt.Printf("\n")
+
+        log.Panic(parseErr)
     }
 
     if options.JsonAsList == true {
