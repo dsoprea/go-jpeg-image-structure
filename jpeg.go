@@ -214,6 +214,20 @@ func (s *Segment) Exif() (rootIfd *exif.Ifd, data []byte, err error) {
 	return index.RootIfd, rawExif, nil
 }
 
+// FlatExif parses the EXIF data and just returns a list of tags.
+func (s *Segment) FlatExif() (exifTags []exif.ExifTag, err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+	exifTags, err = exif.GetFlatExifData(s.Data[len(ExifPrefix):])
+	log.PanicIf(err)
+
+	return exifTags, nil
+}
+
 func (s *Segment) EmbeddedString() string {
 	h := sha1.New()
 	h.Write(s.Data)
@@ -386,7 +400,7 @@ func (sl *SegmentList) DumpExif() (segmentIndex int, segment *Segment, exifTags 
 		log.Panic(err)
 	}
 
-	exifTags, err = exif.GetFlatExifData(s.Data[len(ExifPrefix):])
+	exifTags, err = s.FlatExif()
 	log.PanicIf(err)
 
 	return segmentIndex, s, exifTags, nil
