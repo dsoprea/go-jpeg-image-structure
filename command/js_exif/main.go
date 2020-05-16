@@ -15,8 +15,9 @@ import (
 
 var (
 	options = &struct {
-		Filepath string `short:"f" long:"filepath" required:"true" description:"File-path of JPEG image ('-' for STDIN)"`
-		Json     bool   `short:"j" long:"json" description:"Print as JSON"`
+		Filepath       string `short:"f" long:"filepath" required:"true" description:"File-path of JPEG image ('-' for STDIN)"`
+		Json           bool   `short:"j" long:"json" description:"Print as JSON"`
+		DoPrintVerbose bool   `short:"v" long:"verbose" description:"Print logging"`
 	}{}
 )
 
@@ -46,6 +47,16 @@ func main() {
 	_, err := flags.Parse(options)
 	if err != nil {
 		os.Exit(-1)
+	}
+
+	if options.DoPrintVerbose == true {
+		cla := log.NewConsoleLogAdapter()
+		log.AddAdapter("console", cla)
+
+		scp := log.NewStaticConfigurationProvider()
+		scp.SetLevelName(log.LevelNameDebug)
+
+		log.LoadConfiguration(scp)
 	}
 
 	var data []byte
