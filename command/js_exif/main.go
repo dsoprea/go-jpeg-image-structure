@@ -143,7 +143,7 @@ func main() {
 					continue
 				}
 
-				fmt.Printf("%2d: IFD-PATH=[%s] ID=(0x%02x) NAME=[%s] TYPE=(%d):[%s] VALUE=[%v]", i, tag.IfdPath, tag.TagId, tag.TagName, tag.TagTypeId, tag.TagTypeName, tag.Value)
+				fmt.Printf("%2d: IFD-PATH=[%s] ID=(0x%02x) NAME=[%s] TYPE=(%d):[%s] VALUE=[%v]", i, tag.IfdPath, tag.TagId, tag.TagName, tag.TagTypeId, tag.TagTypeName, tag.FormattedFirst)
 
 				if tag.ChildIfdPath != "" {
 					fmt.Printf(" CHILD-IFD-PATH=[%s]", tag.ChildIfdPath)
