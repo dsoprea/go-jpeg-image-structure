@@ -4,10 +4,13 @@ go 1.13
 
 // Development only
 // replace github.com/dsoprea/go-utility => ../go-utility
+// replace github.com/dsoprea/go-exif/v2 => ../go-exif/v2
 
 require (
-	github.com/dsoprea/go-exif/v2 v2.0.0-20200502203340-6aea10b45f4c
+	github.com/dsoprea/go-exif/v2 v2.0.0-20200516122116-a45cc7cfd55e
 	github.com/dsoprea/go-logging v0.0.0-20200502201358-170ff607885f
-	github.com/dsoprea/go-utility v0.0.0-20200322154813-27f0b0d142d7
+	github.com/dsoprea/go-utility v0.0.0-20200512094054-1abbbc781176
 	github.com/jessevdk/go-flags v1.4.0
+	golang.org/x/net v0.0.0-20200513185701-a91f0712d120 // indirect
+	gopkg.in/yaml.v2 v2.3.0 // indirect
 )
