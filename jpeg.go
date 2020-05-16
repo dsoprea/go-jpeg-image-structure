@@ -58,7 +58,7 @@ const (
 )
 
 var (
-	jpegLogger        = log.NewLogger("exifjpeg.jpeg")
+	jpegLogger        = log.NewLogger("jpegstructure.jpeg")
 	jpegMagicStandard = []byte{0xff, MARKER_SOI, 0xff}
 	jpegMagic2000     = []byte{0xff, 0x4f, 0xff}
 
@@ -205,6 +205,8 @@ func (s *Segment) Exif() (rootIfd *exif.Ifd, data []byte, err error) {
 
 	rawExif := s.Data[len(ExifPrefix):]
 
+	jpegLogger.Debugf(nil, "Attempting to parse (%d) byte EXIF blob (Exif).", len(rawExif))
+
 	im := exif.NewIfdMappingWithStandard()
 	ti := exif.NewTagIndex()
 
@@ -222,7 +224,11 @@ func (s *Segment) FlatExif() (exifTags []exif.ExifTag, err error) {
 		}
 	}()
 
-	exifTags, err = exif.GetFlatExifData(s.Data[len(ExifPrefix):])
+	rawExif := s.Data[len(ExifPrefix):]
+
+	jpegLogger.Debugf(nil, "Attempting to parse (%d) byte EXIF blob (FlatExif).", len(rawExif))
+
+	exifTags, err = exif.GetFlatExifData(rawExif)
 	log.PanicIf(err)
 
 	return exifTags, nil
