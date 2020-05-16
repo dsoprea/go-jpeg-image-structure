@@ -76,10 +76,15 @@ func main() {
 		var err error
 		_, _, et, err = sl.DumpExif()
 
-		// There was a parse error and we couldn't find/parse EXIF data. Panic
-		// with the original error from above.
+		// There was a parse error and we couldn't find/parse EXIF data. If the
+		// extraction had already failed above and we were just trying for a
+		// contingency, fail with that error first.
 		if err != nil {
-			log.Panic(parseErr)
+			if parseErr != nil {
+				log.Panic(parseErr)
+			} else {
+				log.Panic(err)
+			}
 		}
 	} else if parseErr == nil {
 		// We should never get a `nil` `intfc` value back *and* a `nil`
