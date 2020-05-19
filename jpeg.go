@@ -651,7 +651,7 @@ func (js *JpegSplitter) readSegment(data []byte) (count int, err error) {
 		}
 
 		if data[0] != jpegMagicStandard[0] || data[1] != jpegMagicStandard[1] || data[2] != jpegMagicStandard[2] {
-			log.Panicf("file does not look like a JPEG: (%X) (%X) (%X)", data[0], data[1], data[2])
+			log.Panicf("file does not look like a JPEG: (%02x) (%02x) (%02x)", data[0], data[1], data[2])
 		}
 	}
 
