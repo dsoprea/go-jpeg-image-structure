@@ -211,7 +211,7 @@ func TestSegment_SetExif_Update(t *testing.T) {
 	rootIb, err := sl.ConstructExifBuilder()
 	log.PanicIf(err)
 
-	i, err := rootIb.Find(exifcommon.IfdExifId)
+	i, err := rootIb.Find(exifcommon.IfdExifStandardIfdIdentity.TagId())
 	log.PanicIf(err)
 
 	exifBt := rootIb.Tags()[i]
@@ -247,7 +247,7 @@ func TestSegment_SetExif_Update(t *testing.T) {
 	rootIfd, _, err := recoveredSl.Exif()
 	log.PanicIf(err)
 
-	exifIfd, err := rootIfd.ChildWithIfdPath(exifcommon.IfdPathStandardExif)
+	exifIfd, err := rootIfd.ChildWithIfdPath(exifcommon.IfdExifStandardIfdIdentity)
 	log.PanicIf(err)
 
 	results, err := exifIfd.FindTagWithName("UserComment")
@@ -289,7 +289,7 @@ func TestSegment_SetExif_FromScratch(t *testing.T) {
 	err := exif.LoadStandardTags(ti)
 	log.PanicIf(err)
 
-	rootIb := exif.NewIfdBuilder(im, ti, exifcommon.IfdPathStandard, exifcommon.EncodeDefaultByteOrder)
+	rootIb := exif.NewIfdBuilder(im, ti, exifcommon.IfdStandardIfdIdentity, exifcommon.EncodeDefaultByteOrder)
 
 	err = rootIb.AddStandardWithName("ProcessingSoftware", "some software")
 	log.PanicIf(err)
@@ -361,7 +361,7 @@ func TestSegmentList_SetExif_FromScratch(t *testing.T) {
 	err = exif.LoadStandardTags(ti)
 	log.PanicIf(err)
 
-	rootIb := exif.NewIfdBuilder(im, ti, exifcommon.IfdPathStandard, exifcommon.EncodeDefaultByteOrder)
+	rootIb := exif.NewIfdBuilder(im, ti, exifcommon.IfdStandardIfdIdentity, exifcommon.EncodeDefaultByteOrder)
 
 	err = rootIb.AddStandardWithName("ProcessingSoftware", "some software")
 	log.PanicIf(err)
@@ -423,7 +423,7 @@ func TestSegmentList_SetExif(t *testing.T) {
 	im := exif.NewIfdMappingWithStandard()
 	ti := exif.NewTagIndex()
 
-	ib := exif.NewIfdBuilder(im, ti, exifcommon.IfdPathStandard, exifcommon.TestDefaultByteOrder)
+	ib := exif.NewIfdBuilder(im, ti, exifcommon.IfdStandardIfdIdentity, exifcommon.TestDefaultByteOrder)
 	ib.AddStandardWithName("ProcessingSoftware", "some software")
 
 	err := sl.SetExif(ib)
@@ -443,7 +443,7 @@ func TestSegmentList_SetExif(t *testing.T) {
 	sl.Add(&Segment{MarkerId: 0})
 	sl.Add(&Segment{MarkerId: 0})
 
-	ib = exif.NewIfdBuilder(im, ti, exifcommon.IfdPathStandard, exifcommon.TestDefaultByteOrder)
+	ib = exif.NewIfdBuilder(im, ti, exifcommon.IfdStandardIfdIdentity, exifcommon.TestDefaultByteOrder)
 	ib.AddStandardWithName("ProcessingSoftware", "some software2")
 
 	err = sl.SetExif(ib)
@@ -615,7 +615,7 @@ func TestSegmentList_Exif(t *testing.T) {
 	rootIfd, data, err := sl.Exif()
 	log.PanicIf(err)
 
-	if rootIfd.IfdPath != exifcommon.IfdPathStandard {
+	if rootIfd.IfdIdentity().Equals(exifcommon.IfdStandardIfdIdentity) != true {
 		t.Fatalf("root IFD does not have correct identity")
 	}
 
@@ -655,7 +655,7 @@ func TestSegment_Exif(t *testing.T) {
 	rootIfd, data, err := s.Exif()
 	log.PanicIf(err)
 
-	if rootIfd.IfdPath != exifcommon.IfdPathStandard {
+	if rootIfd.IfdIdentity().Equals(exifcommon.IfdStandardIfdIdentity) != true {
 		t.Fatalf("root IFD does not have correct identity")
 	}
 

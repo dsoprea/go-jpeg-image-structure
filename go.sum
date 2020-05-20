@@ -15,6 +15,8 @@ github.com/dsoprea/go-exif/v2 v2.0.0-20200517080529-c9be4b30b064 h1:V7CH/kZImE6L
 github.com/dsoprea/go-exif/v2 v2.0.0-20200517080529-c9be4b30b064/go.mod h1:YXOyDqCYjBuHHRw4JIGPgOgMit0IDvVSjjhsqOAFTYQ=
 github.com/dsoprea/go-exif/v2 v2.0.0-20200518001653-d0d0f14dea03 h1:r+aCxLEe6uGDC/NJCpA3WQJ+C7WJ0chzfHKgy173fug=
 github.com/dsoprea/go-exif/v2 v2.0.0-20200518001653-d0d0f14dea03/go.mod h1:STKu28lNwOeoO0bieAKJ3zQYkUbZ2hivI6qjjGVW0sc=
+github.com/dsoprea/go-exif/v2 v2.0.0-20200520183328-015129a9efd5 h1:iKMxnRjFqQQYKEpdsjFDMV2+VUAncTLT4ofcCiQpDvo=
+github.com/dsoprea/go-exif/v2 v2.0.0-20200520183328-015129a9efd5/go.mod h1:9EXlPeHfblFFnwu5UOqmP2eoZfJyAZ2Ri/Vki33ajO0=
 github.com/dsoprea/go-logging v0.0.0-20190624164917-c4f10aab7696 h1:VGFnZAcLwPpt1sHlAxml+pGLZz9A2s+K/s1YNhPC91Y=
 github.com/dsoprea/go-logging v0.0.0-20190624164917-c4f10aab7696/go.mod h1:Nm/x2ZUNRW6Fe5C3LxdY1PyZY5wmDv/s5dkPJ/VB3iA=
 github.com/dsoprea/go-logging v0.0.0-20200502201358-170ff607885f h1:FonKAuW3PmNtqk9tOR+Z7bnyQHytmnZBCmm5z1PQMss=
@@ -47,6 +49,8 @@ golang.org/x/net v0.0.0-20200501053045-e0ff5e5a1de5 h1:WQ8q63x+f/zpC8Ac1s9wLElVo
 golang.org/x/net v0.0.0-20200501053045-e0ff5e5a1de5/go.mod h1:qpuaurCH72eLCgpAm/N6yyVIVM9cpaDIP3A8BGJEC5A=
 golang.org/x/net v0.0.0-20200513185701-a91f0712d120 h1:EZ3cVSzKOlJxAd8e8YAJ7no8nNypTxexh/YE/xW3ZEY=
 golang.org/x/net v0.0.0-20200513185701-a91f0712d120/go.mod h1:qpuaurCH72eLCgpAm/N6yyVIVM9cpaDIP3A8BGJEC5A=
+golang.org/x/net v0.0.0-20200520182314-0ba52f642ac2 h1:eDrdRpKgkcCqKZQwyZRyeFZgfqt37SL7Kv3tok06cKE=
+golang.org/x/net v0.0.0-20200520182314-0ba52f642ac2/go.mod h1:qpuaurCH72eLCgpAm/N6yyVIVM9cpaDIP3A8BGJEC5A=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
