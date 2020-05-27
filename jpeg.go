@@ -228,7 +228,7 @@ func (s *Segment) FlatExif() (exifTags []exif.ExifTag, err error) {
 
 	jpegLogger.Debugf(nil, "Attempting to parse (%d) byte EXIF blob (FlatExif).", len(rawExif))
 
-	exifTags, err = exif.GetFlatExifData(rawExif)
+	exifTags, _, err = exif.GetExifData(rawExif, true)
 	log.PanicIf(err)
 
 	return exifTags, nil
