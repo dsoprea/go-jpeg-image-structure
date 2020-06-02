@@ -17,6 +17,9 @@ type JpegMediaParser struct {
 
 // NewJpegMediaParser returns a new JpegMediaParser.
 func NewJpegMediaParser() *JpegMediaParser {
+
+    // TODO(dustin): Add test
+
     return new(JpegMediaParser)
 }
 
@@ -60,8 +63,12 @@ func (jmp *JpegMediaParser) ParseFile(filepath string) (ec riimage.MediaContext,
         }
     }()
 
+    // TODO(dustin): Add test
+
     f, err := os.Open(filepath)
     log.PanicIf(err)
+
+    defer f.Close()
 
     stat, err := f.Stat()
     log.PanicIf(err)
@@ -116,6 +123,6 @@ func (jmp *JpegMediaParser) LooksLikeFormat(data []byte) bool {
 }
 
 var (
-    // Enforce that `JpegMediaParser` looks like a `riimage.MediaParser`.
+    // Enforce interface conformance.
     _ riimage.MediaParser = new(JpegMediaParser)
 )
