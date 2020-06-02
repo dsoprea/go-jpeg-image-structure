@@ -3,13 +3,13 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"path"
 	"testing"
 
 	"encoding/json"
 	"os/exec"
 
+	"github.com/dsoprea/go-jpeg-image-structure"
 	"github.com/dsoprea/go-logging"
 )
 
@@ -150,54 +150,22 @@ func TestMain_Json_Exif(t *testing.T) {
 	}
 }
 
-func GetModuleRootPath() string {
-	moduleRootPath := os.Getenv("JPEG_MODULE_ROOT_PATH")
-	if moduleRootPath != "" {
-		return moduleRootPath
-	}
-
-	currentWd, err := os.Getwd()
-	log.PanicIf(err)
-
-	currentPath := currentWd
-	visited := make([]string, 0)
-
-	for {
-		tryStampFilepath := path.Join(currentPath, ".MODULE_ROOT")
-
-		_, err := os.Stat(tryStampFilepath)
-		if err != nil && os.IsNotExist(err) != true {
-			log.Panic(err)
-		} else if err == nil {
-			break
-		}
-
-		visited = append(visited, tryStampFilepath)
-
-		currentPath = path.Dir(currentPath)
-		if currentPath == "/" {
-			log.Panicf("could not find module-root: %v", visited)
-		}
-	}
-
-	return currentPath
-}
-
 func getTestAssetsPath() string {
-	if assetsPath == "" {
-		moduleRootPath := GetModuleRootPath()
-		assetsPath = path.Join(moduleRootPath, "assets")
-	}
+	moduleRootPath := jpegstructure.GetModuleRootPath()
+	assetsPath := path.Join(moduleRootPath, "assets")
 
 	return assetsPath
 }
 
 func getTestImageFilepath() string {
-	assetsPath := getTestAssetsPath()
 	return path.Join(assetsPath, "NDM_8901.jpg")
 }
 
 func getAppFilepath() string {
-	moduleRootPath := GetModuleRootPath()
+	moduleRootPath := jpegstructure.GetModuleRootPath()
 	return path.Join(moduleRootPath, "command", "js_exif", "main.go")
+}
+
+func init() {
+	assetsPath = getTestAssetsPath()
 }
