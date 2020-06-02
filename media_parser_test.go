@@ -11,7 +11,7 @@ import (
     "github.com/dsoprea/go-logging"
 )
 
-func TestJpegMediaParser_ParseSegments(t *testing.T) {
+func TestJpegMediaParser_Parse(t *testing.T) {
     filepath := path.Join(assetsPath, testImageRelFilepath)
     f, err := os.Open(filepath)
     log.PanicIf(err)
@@ -82,7 +82,7 @@ func TestJpegMediaParser_ParseSegments(t *testing.T) {
     }
 }
 
-func TestJpegMediaParser_ParseBytesStructure(t *testing.T) {
+func TestJpegMediaParser_ParseBytes(t *testing.T) {
     filepath := path.Join(assetsPath, testImageRelFilepath)
 
     data, err := ioutil.ReadFile(filepath)
@@ -141,7 +141,7 @@ func TestJpegMediaParser_ParseBytesStructure(t *testing.T) {
     }
 }
 
-func TestJpegMediaParser_ParseBytesStructure_Offsets(t *testing.T) {
+func TestJpegMediaParser_ParseBytes_Offsets(t *testing.T) {
     filepath := path.Join(assetsPath, testImageRelFilepath)
 
     data, err := ioutil.ReadFile(filepath)
@@ -158,7 +158,7 @@ func TestJpegMediaParser_ParseBytesStructure_Offsets(t *testing.T) {
     log.PanicIf(err)
 }
 
-func TestJpegMediaParser_ParseBytesStructure_MultipleEois(t *testing.T) {
+func TestJpegMediaParser_ParseBytes_MultipleEois(t *testing.T) {
     defer func() {
         if state := recover(); state != nil {
             err := log.Wrap(state.(error))
