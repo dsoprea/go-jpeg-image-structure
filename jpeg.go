@@ -12,48 +12,122 @@ import (
 
 	"github.com/dsoprea/go-exif/v2"
 	"github.com/dsoprea/go-logging"
+	"github.com/dsoprea/go-utility/image"
 )
 
 const (
-	MARKER_SOI   = 0xd8
-	MARKER_EOI   = 0xd9
-	MARKER_SOS   = 0xda
-	MARKER_SOD   = 0x93
-	MARKER_DQT   = 0xdb
-	MARKER_APP0  = 0xe0
-	MARKER_APP1  = 0xe1
-	MARKER_APP2  = 0xe2
-	MARKER_APP3  = 0xe3
-	MARKER_APP4  = 0xe4
-	MARKER_APP5  = 0xe5
-	MARKER_APP6  = 0xe6
-	MARKER_APP7  = 0xe7
-	MARKER_APP8  = 0xe8
-	MARKER_APP10 = 0xea
-	MARKER_APP12 = 0xec
-	MARKER_APP13 = 0xed
-	MARKER_APP14 = 0xee
-	MARKER_APP15 = 0xef
-	MARKER_COM   = 0xfe
-	MARKER_CME   = 0x64
-	MARKER_SIZ   = 0x51
+	// MARKER_SOI
+	MARKER_SOI = 0xd8
 
+	// MARKER_EOI
+	MARKER_EOI = 0xd9
+
+	// MARKER_SOS
+	MARKER_SOS = 0xda
+
+	// MARKER_SOD
+	MARKER_SOD = 0x93
+
+	// MARKER_DQT
+	MARKER_DQT = 0xdb
+
+	// MARKER_APP0
+	MARKER_APP0 = 0xe0
+
+	// MARKER_APP1
+	MARKER_APP1 = 0xe1
+
+	// MARKER_APP2
+	MARKER_APP2 = 0xe2
+
+	// MARKER_APP3
+	MARKER_APP3 = 0xe3
+
+	// MARKER_APP4
+	MARKER_APP4 = 0xe4
+
+	// MARKER_APP5
+	MARKER_APP5 = 0xe5
+
+	// MARKER_APP6
+	MARKER_APP6 = 0xe6
+
+	// MARKER_APP7
+	MARKER_APP7 = 0xe7
+
+	// MARKER_APP8
+	MARKER_APP8 = 0xe8
+
+	// MARKER_APP10
+	MARKER_APP10 = 0xea
+
+	// MARKER_APP12
+	MARKER_APP12 = 0xec
+
+	// MARKER_APP13
+	MARKER_APP13 = 0xed
+
+	// MARKER_APP14
+	MARKER_APP14 = 0xee
+
+	// MARKER_APP15
+	MARKER_APP15 = 0xef
+
+	// MARKER_COM
+	MARKER_COM = 0xfe
+
+	// MARKER_CME
+	MARKER_CME = 0x64
+
+	// MARKER_SIZ
+	MARKER_SIZ = 0x51
+
+	// MARKER_DHT
 	MARKER_DHT = 0xc4
+
+	// MARKER_JPG
 	MARKER_JPG = 0xc8
+
+	// MARKER_DAC
 	MARKER_DAC = 0xcc
 
-	MARKER_SOF0  = 0xc0
-	MARKER_SOF1  = 0xc1
-	MARKER_SOF2  = 0xc2
-	MARKER_SOF3  = 0xc3
-	MARKER_SOF5  = 0xc5
-	MARKER_SOF6  = 0xc6
-	MARKER_SOF7  = 0xc7
-	MARKER_SOF9  = 0xc9
+	// MARKER_SOF0
+	MARKER_SOF0 = 0xc0
+
+	// MARKER_SOF1
+	MARKER_SOF1 = 0xc1
+
+	// MARKER_SOF2
+	MARKER_SOF2 = 0xc2
+
+	// MARKER_SOF3
+	MARKER_SOF3 = 0xc3
+
+	// MARKER_SOF5
+	MARKER_SOF5 = 0xc5
+
+	// MARKER_SOF6
+	MARKER_SOF6 = 0xc6
+
+	// MARKER_SOF7
+	MARKER_SOF7 = 0xc7
+
+	// MARKER_SOF9
+	MARKER_SOF9 = 0xc9
+
+	// MARKER_SOF10
 	MARKER_SOF10 = 0xca
+
+	// MARKER_SOF11
 	MARKER_SOF11 = 0xcb
+
+	// MARKER_SOF13
 	MARKER_SOF13 = 0xcd
+
+	// MARKER_SOF14
 	MARKER_SOF14 = 0xce
+
+	// MARKER_SOF15
 	MARKER_SOF15 = 0xcf
 )
 
@@ -147,27 +221,46 @@ var (
 		MARKER_SOF15: "SOF15",
 	}
 
+	// ExifPrefix is the prefix found at the top of an EXIF slice. This is JPEG-
+	// specific.
 	ExifPrefix = []byte{'E', 'x', 'i', 'f', 0, 0}
 )
 
+// SofSegment has info read from a SOF segment.
 type SofSegment struct {
-	BitsPerSample  byte
-	Width, Height  uint16
+	// BitsPerSample is the bits-per-sample.
+	BitsPerSample byte
+
+	// Width is the image width.
+	Width uint16
+
+	// Height is the image height.
+	Height uint16
+
+	// ComponentCount is the number of color components.
 	ComponentCount byte
 }
 
+// String returns a string representation of the SOF segment.
 func (ss SofSegment) String() string {
 	return fmt.Sprintf("SOF<BitsPerSample=(%d) Width=(%d) Height=(%d) ComponentCount=(%d)>", ss.BitsPerSample, ss.Width, ss.Height, ss.ComponentCount)
 }
 
+// SegmentVisitor describes a segment-visitor struct.
 type SegmentVisitor interface {
+	// HandleSegment is triggered for each segment encountered as well as the
+	// scan-data.
 	HandleSegment(markerId byte, markerName string, counter int, lastIsScanData bool) error
 }
 
+// SofSegmentVisitor describes a visitor that is only called for each SOF
+// segment.
 type SofSegmentVisitor interface {
+	// HandleSof is called for each encountered SOF segment.
 	HandleSof(sof *SofSegment) error
 }
 
+// Segment describes a single segment.
 type Segment struct {
 	MarkerId   byte
 	MarkerName string
@@ -945,3 +1038,8 @@ func (js *JpegSplitter) handleSegment(markerId byte, markerName string, headerSi
 
 	return nil
 }
+
+var (
+	// Enforce interface conformance.
+	_ riimage.MediaContext = new(Segment)
+)
