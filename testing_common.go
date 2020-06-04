@@ -8,6 +8,10 @@ import (
 )
 
 var (
+	testImageRelFilepath = "NDM_8901.jpg"
+)
+
+var (
 	assetsPath = ""
 )
 
@@ -44,7 +48,18 @@ func GetModuleRootPath() string {
 	return currentPath
 }
 
-func init() {
-	moduleRootPath := GetModuleRootPath()
-	assetsPath = path.Join(moduleRootPath, "assets")
+func GetTestAssetsPath() string {
+	if assetsPath == "" {
+		moduleRootPath := GetModuleRootPath()
+		assetsPath = path.Join(moduleRootPath, "assets")
+	}
+
+	return assetsPath
+}
+
+func GetTestImagePath() string {
+	assetsPath := GetTestAssetsPath()
+	filepath := path.Join(assetsPath, testImageRelFilepath)
+
+	return filepath
 }

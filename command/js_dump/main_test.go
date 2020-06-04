@@ -3,7 +3,6 @@ package main
 import (
   "bytes"
   "fmt"
-  "os"
   "path"
   "testing"
 
@@ -11,11 +10,8 @@ import (
   "os/exec"
 
   "github.com/dsoprea/go-logging"
-)
 
-var (
-  assetsPath  = ""
-  appFilepath = ""
+  "github.com/dsoprea/go-jpeg-image-structure"
 )
 
 type JsonResultJpegSegmentListItem struct {
@@ -32,7 +28,8 @@ type JsonResultJpegSegmentIndexItem struct {
 }
 
 func TestMain_Plain(t *testing.T) {
-  imageFilepath := path.Join(assetsPath, "NDM_8901.jpg")
+  imageFilepath := jpegstructure.GetTestImagePath()
+  appFilepath := getAppFilepath()
 
   cmd := exec.Command(
     "go", "run", appFilepath,
@@ -80,7 +77,8 @@ func TestMain_Json_NoData(t *testing.T) {
     }
   }()
 
-  imageFilepath := path.Join(assetsPath, "NDM_8901.jpg")
+  imageFilepath := jpegstructure.GetTestImagePath()
+  appFilepath := getAppFilepath()
 
   cmd := exec.Command(
     "go", "run", appFilepath,
@@ -174,7 +172,8 @@ func TestMain_Json_NoData(t *testing.T) {
 }
 
 func TestMain_Json_NoData_SegmentIndex(t *testing.T) {
-  imageFilepath := path.Join(assetsPath, "NDM_8901.jpg")
+  imageFilepath := jpegstructure.GetTestImagePath()
+  appFilepath := getAppFilepath()
 
   cmd := exec.Command(
     "go", "run", appFilepath,
@@ -266,7 +265,8 @@ func TestMain_Json_NoData_SegmentIndex(t *testing.T) {
 }
 
 func TestMain_Json_Data(t *testing.T) {
-  imageFilepath := path.Join(assetsPath, "NDM_8901.jpg")
+  imageFilepath := jpegstructure.GetTestImagePath()
+  appFilepath := getAppFilepath()
 
   cmd := exec.Command(
     "go", "run", appFilepath,
@@ -308,9 +308,7 @@ func TestMain_Json_Data(t *testing.T) {
   }
 }
 
-func init() {
-  goPath := os.Getenv("GOPATH")
-
-  assetsPath = path.Join(goPath, "src", "github.com", "dsoprea", "go-jpeg-image-structure", "assets")
-  appFilepath = path.Join(goPath, "src", "github.com", "dsoprea", "go-jpeg-image-structure", "command", "js_dump", "main.go")
+func getAppFilepath() string {
+  moduleRootPath := jpegstructure.GetModuleRootPath()
+  return path.Join(moduleRootPath, "command", "js_dump", "main.go")
 }
