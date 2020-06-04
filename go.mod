@@ -8,7 +8,7 @@ go 1.13
 // replace github.com/dsoprea/go-exif/v2 => ../go-exif/v2
 
 require (
-	github.com/dsoprea/go-exif/v2 v2.0.0-20200527165002-1a62daf3052a
+	github.com/dsoprea/go-exif/v2 v2.0.0-20200604193436-ca8584a0e1c4
 	github.com/dsoprea/go-logging v0.0.0-20200517223158-a10564966e9d
 	github.com/dsoprea/go-utility v0.0.0-20200512094054-1abbbc781176
 	github.com/jessevdk/go-flags v1.4.0

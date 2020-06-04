@@ -23,6 +23,8 @@ github.com/dsoprea/go-exif/v2 v2.0.0-20200527042908-2a1e3f0fa19c h1:3uLJ1ub/I1sF
 github.com/dsoprea/go-exif/v2 v2.0.0-20200527042908-2a1e3f0fa19c/go.mod h1:9EXlPeHfblFFnwu5UOqmP2eoZfJyAZ2Ri/Vki33ajO0=
 github.com/dsoprea/go-exif/v2 v2.0.0-20200527165002-1a62daf3052a h1:Xk487H/DyhmIgYAnbJ5gvOrwI/eJ+FVXIO9Y22m44VI=
 github.com/dsoprea/go-exif/v2 v2.0.0-20200527165002-1a62daf3052a/go.mod h1:9EXlPeHfblFFnwu5UOqmP2eoZfJyAZ2Ri/Vki33ajO0=
+github.com/dsoprea/go-exif/v2 v2.0.0-20200604193436-ca8584a0e1c4 h1:Mg7pY7kxDQD2Bkvr1N+XW4BESSIQ7tTTR7Vv+Gi2CsM=
+github.com/dsoprea/go-exif/v2 v2.0.0-20200604193436-ca8584a0e1c4/go.mod h1:9EXlPeHfblFFnwu5UOqmP2eoZfJyAZ2Ri/Vki33ajO0=
 github.com/dsoprea/go-logging v0.0.0-20190624164917-c4f10aab7696 h1:VGFnZAcLwPpt1sHlAxml+pGLZz9A2s+K/s1YNhPC91Y=
 github.com/dsoprea/go-logging v0.0.0-20190624164917-c4f10aab7696/go.mod h1:Nm/x2ZUNRW6Fe5C3LxdY1PyZY5wmDv/s5dkPJ/VB3iA=
 github.com/dsoprea/go-logging v0.0.0-20200502201358-170ff607885f h1:FonKAuW3PmNtqk9tOR+Z7bnyQHytmnZBCmm5z1PQMss=
