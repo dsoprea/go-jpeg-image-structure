@@ -55,7 +55,7 @@ func Test_JpegSplitter_Split(t *testing.T) {
 		}
 	}()
 
-	filepath := GetTestImagePath()
+	filepath := GetTestImageFilepath()
 
 	f, err := os.Open(filepath)
 	log.PanicIf(err)
@@ -122,7 +122,7 @@ func TestSegmentList_Write(t *testing.T) {
 		}
 	}()
 
-	filepath := GetTestImagePath()
+	filepath := GetTestImageFilepath()
 
 	data, err := ioutil.ReadFile(filepath)
 	log.PanicIf(err)
@@ -157,7 +157,7 @@ func TestSegmentList_Write(t *testing.T) {
 //         }
 //     }()
 
-//     filepath := GetTestImagePath()
+//     filepath := GetTestImageFilepath()
 
 //     jmp := NewJpegMediaParser()
 
@@ -188,7 +188,7 @@ func TestSegment_SetExif_Update(t *testing.T) {
 		}
 	}()
 
-	filepath := GetTestImagePath()
+	filepath := GetTestImageFilepath()
 
 	// TODO(dustin): !! Might want to test a reconstruction without actually modifying anything. This is also useful. Everything will still be reallocated and this will help us determine if we're having parsing/encoding problems versions problems with an individual tag's value.
 	// TODO(dustin): !! Use native/third-party EXIF support to test?
@@ -331,7 +331,7 @@ func TestSegmentList_SetExif_FromScratch(t *testing.T) {
 
 	// Parse the image.
 
-	filepath := GetTestImagePath()
+	filepath := GetTestImageFilepath()
 
 	jmp := NewJpegMediaParser()
 
@@ -461,7 +461,7 @@ func TestSegmentList_SetExif(t *testing.T) {
 }
 
 func ExampleSegmentList_SetExif_unknowntype() {
-	filepath := GetTestImagePath()
+	filepath := GetTestImageFilepath()
 
 	// Parse the image.
 
@@ -509,7 +509,7 @@ func ExampleSegmentList_SetExif_unknowntype() {
 // `IfdBuilder` structs for the existing IFDs, identify the builder for the IFD
 // that we know hosts the tag we want to change, and how to change it.
 func ExampleSegmentList_SetExif() {
-	filepath := GetTestImagePath()
+	filepath := GetTestImageFilepath()
 
 	// Parse the image.
 
@@ -560,7 +560,7 @@ func TestSegmentList_FindExif(t *testing.T) {
 		}
 	}()
 
-	imageFilepath := GetTestImagePath()
+	imageFilepath := GetTestImageFilepath()
 
 	// Parse the image.
 
@@ -597,7 +597,7 @@ func TestSegmentList_Exif(t *testing.T) {
 		}
 	}()
 
-	imageFilepath := GetTestImagePath()
+	imageFilepath := GetTestImageFilepath()
 
 	// Parse the image.
 
@@ -634,7 +634,7 @@ func TestSegment_Exif(t *testing.T) {
 		}
 	}()
 
-	imageFilepath := GetTestImagePath()
+	imageFilepath := GetTestImageFilepath()
 
 	// Parse the image.
 
@@ -666,7 +666,7 @@ func TestSegment_Exif(t *testing.T) {
 }
 
 func TestSegmentList_Validate(t *testing.T) {
-	filepath := GetTestImagePath()
+	filepath := GetTestImageFilepath()
 
 	data, err := ioutil.ReadFile(filepath)
 	log.PanicIf(err)

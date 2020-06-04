@@ -28,7 +28,7 @@ type JsonResultJpegSegmentIndexItem struct {
 }
 
 func TestMain_Plain(t *testing.T) {
-  imageFilepath := jpegstructure.GetTestImagePath()
+  imageFilepath := jpegstructure.GetTestImageFilepath()
   appFilepath := getAppFilepath()
 
   cmd := exec.Command(
@@ -77,7 +77,7 @@ func TestMain_Json_NoData(t *testing.T) {
     }
   }()
 
-  imageFilepath := jpegstructure.GetTestImagePath()
+  imageFilepath := jpegstructure.GetTestImageFilepath()
   appFilepath := getAppFilepath()
 
   cmd := exec.Command(
@@ -172,7 +172,7 @@ func TestMain_Json_NoData(t *testing.T) {
 }
 
 func TestMain_Json_NoData_SegmentIndex(t *testing.T) {
-  imageFilepath := jpegstructure.GetTestImagePath()
+  imageFilepath := jpegstructure.GetTestImageFilepath()
   appFilepath := getAppFilepath()
 
   cmd := exec.Command(
@@ -265,7 +265,7 @@ func TestMain_Json_NoData_SegmentIndex(t *testing.T) {
 }
 
 func TestMain_Json_Data(t *testing.T) {
-  imageFilepath := jpegstructure.GetTestImagePath()
+  imageFilepath := jpegstructure.GetTestImageFilepath()
   appFilepath := getAppFilepath()
 
   cmd := exec.Command(

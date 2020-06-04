@@ -28,7 +28,7 @@ type JsonResultExifTag struct {
 
 func TestMain_Plain_Exif(t *testing.T) {
 	appFilepath := getAppFilepath()
-	imageFilepath := jpegstructure.GetTestImagePath()
+	imageFilepath := jpegstructure.GetTestImageFilepath()
 
 	cmd := exec.Command(
 		"go", "run", appFilepath,
@@ -116,7 +116,7 @@ func TestMain_Plain_Exif(t *testing.T) {
 
 func TestMain_Json_Exif(t *testing.T) {
 	appFilepath := getAppFilepath()
-	imageFilepath := jpegstructure.GetTestImagePath()
+	imageFilepath := jpegstructure.GetTestImageFilepath()
 
 	cmd := exec.Command(
 		"go", "run", appFilepath,

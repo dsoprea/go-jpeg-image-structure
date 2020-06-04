@@ -57,7 +57,7 @@ func GetTestAssetsPath() string {
 	return assetsPath
 }
 
-func GetTestImagePath() string {
+func GetTestImageFilepath() string {
 	assetsPath := GetTestAssetsPath()
 	filepath := path.Join(assetsPath, testImageRelFilepath)
 
