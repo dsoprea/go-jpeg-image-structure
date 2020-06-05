@@ -19,6 +19,7 @@ var (
         JsonAsObject bool   `short:"o" long:"json-object" description:"Print segments as a JSON object"`
         IncludeData  bool   `short:"d" long:"data" description:"Include actual JPEG data (only with JSON)"`
         Verbose      bool   `short:"v" long:"verbose" description:"Enable logging verbosity"`
+        JustXmp      bool   `short:"x" long:"just-xmp" description:"Just print raw XMP XML. Fails if not present."`
     }{}
 )
 
@@ -80,6 +81,15 @@ func main() {
 
     sl := intfc.(*jpegstructure.SegmentList)
 
+    if options.JustXmp == true {
+        _, s, err := sl.FindXmp()
+        log.PanicIf(err)
+
+        fmt.Println(string(s.Data))
+
+        os.Exit(0)
+    }
+
     segments := make([]segmentResult, len(sl.Segments()))
     segmentIndex := make(map[string][]segmentIndexItem)
 
@@ -136,5 +146,7 @@ func main() {
         fmt.Printf("\n")
 
         sl.Print()
+
+        sl.FindXmp()
     }
 }

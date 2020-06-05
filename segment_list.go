@@ -2,6 +2,7 @@ package jpegstructure
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 
@@ -10,6 +11,14 @@ import (
 
 	"github.com/dsoprea/go-exif/v2"
 	"github.com/dsoprea/go-logging"
+)
+
+var (
+	xmpDataPrefix = []byte("http://ns.adobe.com/xap/1.0/\000")
+)
+
+var (
+	ErrNoXmp = errors.New("no XMP data")
 )
 
 type SegmentList struct {
@@ -52,8 +61,34 @@ func (sl *SegmentList) Print() {
 	if len(sl.segments) == 0 {
 		fmt.Printf("No segments.\n")
 	} else {
+		exifIndex, _, err := sl.FindExif()
+		if err != nil {
+			if err == exif.ErrNoExif {
+				exifIndex = -1
+			} else {
+				log.Panic(err)
+			}
+		}
+
+		xmpIndex, _, err := sl.FindXmp()
+		if err != nil {
+			if err == ErrNoXmp {
+				xmpIndex = -1
+			} else {
+				log.Panic(err)
+			}
+		}
+
 		for i, s := range sl.segments {
-			fmt.Printf("%2d: %s\n", i, s.EmbeddedString())
+			fmt.Printf("%2d: %s", i, s.EmbeddedString())
+
+			if i == exifIndex {
+				fmt.Printf(" [EXIF]")
+			} else if i == xmpIndex {
+				fmt.Printf(" [XMP]")
+			}
+
+			fmt.Printf("\n")
 		}
 	}
 }
@@ -99,7 +134,7 @@ func (sl *SegmentList) Validate(data []byte) (err error) {
 	return nil
 }
 
-// FindExif returns the the segment that hosts the EXIF data.
+// FindExif returns the the segment that hosts the EXIF data (if present).
 func (sl *SegmentList) FindExif() (index int, segment *Segment, err error) {
 	defer func() {
 		if state := recover(); state != nil {
@@ -118,6 +153,28 @@ func (sl *SegmentList) FindExif() (index int, segment *Segment, err error) {
 	}
 
 	return -1, nil, exif.ErrNoExif
+}
+
+// FindXmp returns the the segment that hosts the XMP data (if present).
+func (sl *SegmentList) FindXmp() (index int, segment *Segment, err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+	len_ := len(xmpDataPrefix)
+	for i, s := range sl.segments {
+		if s.MarkerId != MARKER_APP1 {
+			continue
+		}
+
+		if len(s.Data) >= len_ && bytes.Compare(s.Data[:len_], xmpDataPrefix) == 0 {
+			return i, s, nil
+		}
+	}
+
+	return -1, nil, ErrNoXmp
 }
 
 // Exif returns an `exif.Ifd` instance for the EXIF data we currently have.
