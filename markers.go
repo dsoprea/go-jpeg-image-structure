@@ -209,8 +209,4 @@ var (
 		MARKER_SOF14: "SOF14",
 		MARKER_SOF15: "SOF15",
 	}
-
-	// ExifPrefix is the prefix found at the top of an EXIF slice. This is JPEG-
-	// specific.
-	ExifPrefix = []byte{'E', 'x', 'i', 'f', 0, 0}
 )

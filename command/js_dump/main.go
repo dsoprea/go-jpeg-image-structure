@@ -85,7 +85,10 @@ func main() {
         _, s, err := sl.FindXmp()
         log.PanicIf(err)
 
-        fmt.Println(string(s.Data))
+        xml, err := s.FormattedXmp()
+        log.PanicIf(err)
+
+        fmt.Println(xml)
 
         os.Exit(0)
     }

@@ -3,6 +3,7 @@ package jpegstructure
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"testing"
 
 	"io/ioutil"
@@ -191,5 +192,160 @@ func TestSegment_Exif(t *testing.T) {
 
 	if bytes.Compare(data, expectedExifBytes) != 0 {
 		t.Fatalf("exif data not correct")
+	}
+}
+
+func TestSegment_IsExif_Hit(t *testing.T) {
+	defer func() {
+		if state := recover(); state != nil {
+			err := log.Wrap(state.(error))
+			log.PrintErrorf(err, "Test failure.")
+			t.Fatalf("Test failure.")
+		}
+	}()
+
+	imageFilepath := GetTestImageFilepath()
+
+	// Parse the image.
+
+	jmp := NewJpegMediaParser()
+
+	intfc, err := jmp.ParseFile(imageFilepath)
+	log.PanicIf(err)
+
+	sl := intfc.(*SegmentList)
+
+	_, s, err := sl.FindExif()
+	log.PanicIf(err)
+
+	if s.IsExif() != true {
+		t.Fatalf("Did not return true.")
+	}
+}
+
+func TestSegment_IsExif_Miss(t *testing.T) {
+	defer func() {
+		if state := recover(); state != nil {
+			err := log.Wrap(state.(error))
+			log.PrintErrorf(err, "Test failure.")
+			t.Fatalf("Test failure.")
+		}
+	}()
+
+	imageFilepath := GetTestImageFilepath()
+
+	// Parse the image.
+
+	jmp := NewJpegMediaParser()
+
+	intfc, err := jmp.ParseFile(imageFilepath)
+	log.PanicIf(err)
+
+	sl := intfc.(*SegmentList)
+
+	if sl.Segments()[4].IsExif() != false {
+		t.Fatalf("Did not return false.")
+	}
+}
+
+func TestSegment_IsXmp_Hit(t *testing.T) {
+	defer func() {
+		if state := recover(); state != nil {
+			err := log.Wrap(state.(error))
+			log.PrintErrorf(err, "Test failure.")
+			t.Fatalf("Test failure.")
+		}
+	}()
+
+	imageFilepath := GetTestImageFilepath()
+
+	// Parse the image.
+
+	jmp := NewJpegMediaParser()
+
+	intfc, err := jmp.ParseFile(imageFilepath)
+	log.PanicIf(err)
+
+	sl := intfc.(*SegmentList)
+
+	_, s, err := sl.FindXmp()
+	log.PanicIf(err)
+
+	if s.IsXmp() != true {
+		t.Fatalf("Did not return true.")
+	}
+}
+
+func TestSegment_IsXmp_Miss(t *testing.T) {
+	defer func() {
+		if state := recover(); state != nil {
+			err := log.Wrap(state.(error))
+			log.PrintErrorf(err, "Test failure.")
+			t.Fatalf("Test failure.")
+		}
+	}()
+
+	imageFilepath := GetTestImageFilepath()
+
+	// Parse the image.
+
+	jmp := NewJpegMediaParser()
+
+	intfc, err := jmp.ParseFile(imageFilepath)
+	log.PanicIf(err)
+
+	sl := intfc.(*SegmentList)
+
+	if sl.Segments()[4].IsXmp() != false {
+		t.Fatalf("Did not return false.")
+	}
+}
+
+func TestSegment_FormattedXmp(t *testing.T) {
+	defer func() {
+		if state := recover(); state != nil {
+			err := log.Wrap(state.(error))
+			log.PrintErrorf(err, "Test failure.")
+			t.Fatalf("Test failure.")
+		}
+	}()
+
+	imageFilepath := GetTestImageFilepath()
+
+	// Parse the image.
+
+	jmp := NewJpegMediaParser()
+
+	intfc, err := jmp.ParseFile(imageFilepath)
+	log.PanicIf(err)
+
+	sl := intfc.(*SegmentList)
+
+	_, s, err := sl.FindXmp()
+	log.PanicIf(err)
+
+	actualData, err := s.FormattedXmp()
+	log.PanicIf(err)
+
+	// Filter out the Unicode BOM character since this would add unnecessary
+	// complexity to the test.
+	actualData = strings.ReplaceAll(actualData, "\ufeff", "")
+
+	// Replace Windows-style newlines to Unix.
+	actualData = strings.ReplaceAll(actualData, "\r\n", "\n")
+
+	expectedData := `<?xpacket begin='' id='W5M0MpCehiHzreSzNTczkc9d'?>
+    <x:xmpmeta xmlns:x="adobe:ns:meta/">
+      <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+        <rdf:Description rdf:about="" xmlns:xmp="http://ns.adobe.com/xap/1.0/">
+          <xmp:Rating>0
+          </xmp:Rating>
+        </rdf:Description>
+      </rdf:RDF>
+    </x:xmpmeta>
+    <?xpacket end='w'?>`
+
+	if actualData != expectedData {
+		t.Fatalf("XMP data is not correct:\nACTUAL:\n>>>%s<<<\n\nEXPECTED:\n>>>%s<<<\n", actualData, expectedData)
 	}
 }

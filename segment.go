@@ -1,6 +1,8 @@
 package jpegstructure
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 
 	"crypto/sha1"
@@ -9,6 +11,19 @@ import (
 	"github.com/dsoprea/go-exif/v2"
 	"github.com/dsoprea/go-logging"
 	"github.com/dsoprea/go-utility/image"
+)
+
+var (
+	xmpPrefix = []byte("http://ns.adobe.com/xap/1.0/\000")
+
+	// exifPrefix is the prefix found at the top of an EXIF slice. This is JPEG-
+	// specific.
+	exifPrefix = []byte{'E', 'x', 'i', 'f', 0, 0}
+)
+
+var (
+	// ErrNoXmp is returned if XMP data was requested but no XMP data was found.
+	ErrNoXmp = errors.New("no XMP data")
 )
 
 // SofSegment has info read from a SOF segment.
@@ -28,6 +43,9 @@ type SofSegment struct {
 
 // String returns a string representation of the SOF segment.
 func (ss SofSegment) String() string {
+
+	// TODO(dustin): Add test
+
 	return fmt.Sprintf("SOF<BitsPerSample=(%d) Width=(%d) Height=(%d) ComponentCount=(%d)>", ss.BitsPerSample, ss.Width, ss.Height, ss.ComponentCount)
 }
 
@@ -66,9 +84,11 @@ func (s *Segment) SetExif(ib *exif.IfdBuilder) (err error) {
 	exifData, err := ibe.EncodeToExif(ib)
 	log.PanicIf(err)
 
-	s.Data = make([]byte, len(ExifPrefix)+len(exifData))
-	copy(s.Data[0:], ExifPrefix)
-	copy(s.Data[len(ExifPrefix):], exifData)
+	len_ := len(exifPrefix)
+
+	s.Data = make([]byte, len_+len(exifData))
+	copy(s.Data[0:], exifPrefix)
+	copy(s.Data[len_:], exifData)
 
 	return nil
 }
@@ -81,7 +101,9 @@ func (s *Segment) Exif() (rootIfd *exif.Ifd, data []byte, err error) {
 		}
 	}()
 
-	rawExif := s.Data[len(ExifPrefix):]
+	len_ := len(exifPrefix)
+
+	rawExif := s.Data[len_:]
 
 	jpegLogger.Debugf(nil, "Attempting to parse (%d) byte EXIF blob (Exif).", len(rawExif))
 
@@ -102,7 +124,11 @@ func (s *Segment) FlatExif() (exifTags []exif.ExifTag, err error) {
 		}
 	}()
 
-	rawExif := s.Data[len(ExifPrefix):]
+	// TODO(dustin): Add test
+
+	len_ := len(exifPrefix)
+
+	rawExif := s.Data[len_:]
 
 	jpegLogger.Debugf(nil, "Attempting to parse (%d) byte EXIF blob (FlatExif).", len(rawExif))
 
@@ -118,6 +144,8 @@ func (s *Segment) EmbeddedString() string {
 	h := sha1.New()
 	h.Write(s.Data)
 
+	// TODO(dustin): Add test
+
 	digestString := hex.EncodeToString(h.Sum(nil))
 
 	return fmt.Sprintf("OFFSET=(0x%08x %10d) ID=(0x%02x) NAME=[%-5s] SIZE=(%10d) SHA1=[%s]", s.Offset, s.Offset, s.MarkerId, markerNames[s.MarkerId], len(s.Data), digestString)
@@ -125,7 +153,77 @@ func (s *Segment) EmbeddedString() string {
 
 // String returns a descriptive string.
 func (s *Segment) String() string {
+
+	// TODO(dustin): Add test
+
 	return fmt.Sprintf("Segment<%s>", s.EmbeddedString())
+}
+
+// IsExif returns true if EXIF data.
+func (s *Segment) IsExif() bool {
+	if s.MarkerId != MARKER_APP1 {
+		return false
+	}
+
+	// TODO(dustin): Add test
+
+	len_ := len(exifPrefix)
+
+	if len(s.Data) < len_ {
+		return false
+	}
+
+	if bytes.Compare(s.Data[:len_], exifPrefix) != 0 {
+		return false
+	}
+
+	return true
+}
+
+// IsXmp returns true if XMP data.
+func (s *Segment) IsXmp() bool {
+	if s.MarkerId != MARKER_APP1 {
+		return false
+	}
+
+	// TODO(dustin): Add test
+
+	len_ := len(xmpPrefix)
+
+	if len(s.Data) < len_ {
+		return false
+	}
+
+	if bytes.Compare(s.Data[:len_], xmpPrefix) != 0 {
+		return false
+	}
+
+	return true
+}
+
+// FormattedXml returns a formatted XML string. This only makes sense for a
+// segment comprised of XML data (like XMP).
+func (s *Segment) FormattedXmp() (formatted string, err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+	// TODO(dustin): Add test
+
+	if s.IsXmp() != true {
+		log.Panicf("not an XMP segment")
+	}
+
+	len_ := len(xmpPrefix)
+
+	raw := string(s.Data[len_:])
+
+	formatted, err = FormatXml(raw)
+	log.PanicIf(err)
+
+	return formatted, nil
 }
 
 var (

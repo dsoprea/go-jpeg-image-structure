@@ -2,7 +2,6 @@ package jpegstructure
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 
@@ -11,15 +10,6 @@ import (
 
 	"github.com/dsoprea/go-exif/v2"
 	"github.com/dsoprea/go-logging"
-)
-
-var (
-	xmpDataPrefix = []byte("http://ns.adobe.com/xap/1.0/\000")
-)
-
-var (
-	// ErrNoXmp is returned if XMP data was requested but no XMP data was found.
-	ErrNoXmp = errors.New("no XMP data")
 )
 
 // SegmentList contains a slice of segments.
@@ -151,11 +141,7 @@ func (sl *SegmentList) FindExif() (index int, segment *Segment, err error) {
 	}()
 
 	for i, s := range sl.segments {
-		if s.MarkerId < MARKER_APP0 || s.MarkerId > MARKER_APP15 {
-			continue
-		}
-
-		if bytes.Compare(s.Data[:len(ExifPrefix)], ExifPrefix) == 0 {
+		if s.IsExif() == true {
 			return i, s, nil
 		}
 	}
@@ -171,13 +157,8 @@ func (sl *SegmentList) FindXmp() (index int, segment *Segment, err error) {
 		}
 	}()
 
-	len_ := len(xmpDataPrefix)
 	for i, s := range sl.segments {
-		if s.MarkerId != MARKER_APP1 {
-			continue
-		}
-
-		if len(s.Data) >= len_ && bytes.Compare(s.Data[:len_], xmpDataPrefix) == 0 {
+		if s.IsXmp() == true {
 			return i, s, nil
 		}
 	}
@@ -243,6 +224,9 @@ func (sl *SegmentList) DumpExif() (segmentIndex int, segment *Segment, exifTags 
 }
 
 func makeEmptyExifSegment() (s *Segment) {
+
+	// TODO(dustin): Add test
+
 	return &Segment{
 		MarkerId: MARKER_APP1,
 	}
@@ -288,6 +272,8 @@ func (sl *SegmentList) DropExif() (wasDropped bool, err error) {
 			err = log.Wrap(state.(error))
 		}
 	}()
+
+	// TODO(dustin): Add test
 
 	i, _, err := sl.FindExif()
 	if err == nil {
