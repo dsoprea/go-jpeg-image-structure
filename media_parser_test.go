@@ -12,7 +12,8 @@ import (
 )
 
 func TestJpegMediaParser_Parse(t *testing.T) {
-    filepath := path.Join(assetsPath, testImageRelFilepath)
+    filepath := GetTestImageFilepath()
+
     f, err := os.Open(filepath)
     log.PanicIf(err)
 
@@ -83,7 +84,7 @@ func TestJpegMediaParser_Parse(t *testing.T) {
 }
 
 func TestJpegMediaParser_ParseBytes(t *testing.T) {
-    filepath := path.Join(assetsPath, testImageRelFilepath)
+    filepath := GetTestImageFilepath()
 
     data, err := ioutil.ReadFile(filepath)
     log.PanicIf(err)
@@ -142,7 +143,7 @@ func TestJpegMediaParser_ParseBytes(t *testing.T) {
 }
 
 func TestJpegMediaParser_ParseBytes_Offsets(t *testing.T) {
-    filepath := path.Join(assetsPath, testImageRelFilepath)
+    filepath := GetTestImageFilepath()
 
     data, err := ioutil.ReadFile(filepath)
     log.PanicIf(err)
@@ -167,6 +168,7 @@ func TestJpegMediaParser_ParseBytes_MultipleEois(t *testing.T) {
         }
     }()
 
+    assetsPath := GetTestAssetsPath()
     filepath := path.Join(assetsPath, "IMG_6691_Multiple_EOIs.jpg")
 
     data, err := ioutil.ReadFile(filepath)
@@ -238,7 +240,7 @@ func TestJpegMediaParser_ParseBytes_MultipleEois(t *testing.T) {
 }
 
 func TestJpegMediaParser_LooksLikeFormat(t *testing.T) {
-    filepath := path.Join(assetsPath, "NDM_8901.jpg")
+    filepath := GetTestImageFilepath()
 
     data, err := ioutil.ReadFile(filepath)
     log.PanicIf(err)
