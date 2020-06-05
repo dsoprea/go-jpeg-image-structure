@@ -112,6 +112,8 @@ func (s *Segment) FlatExif() (exifTags []exif.ExifTag, err error) {
 	return exifTags, nil
 }
 
+// EmbeddedString returns a string of properties that can be embedded into an
+// longer string of properties.
 func (s *Segment) EmbeddedString() string {
 	h := sha1.New()
 	h.Write(s.Data)
@@ -121,6 +123,7 @@ func (s *Segment) EmbeddedString() string {
 	return fmt.Sprintf("OFFSET=(0x%08x %10d) ID=(0x%02x) NAME=[%-5s] SIZE=(%10d) SHA1=[%s]", s.Offset, s.Offset, s.MarkerId, markerNames[s.MarkerId], len(s.Data), digestString)
 }
 
+// String returns a descriptive string.
 func (s *Segment) String() string {
 	return fmt.Sprintf("Segment<%s>", s.EmbeddedString())
 }

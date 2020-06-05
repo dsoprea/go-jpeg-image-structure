@@ -18,13 +18,16 @@ var (
 )
 
 var (
+	// ErrNoXmp is returned if XMP data was requested but no XMP data was found.
 	ErrNoXmp = errors.New("no XMP data")
 )
 
+// SegmentList contains a slice of segments.
 type SegmentList struct {
 	segments []*Segment
 }
 
+// NewSegmentList returns a new SegmentList struct.
 func NewSegmentList(segments []*Segment) (sl *SegmentList) {
 	if segments == nil {
 		segments = make([]*Segment, 0)
@@ -35,6 +38,8 @@ func NewSegmentList(segments []*Segment) (sl *SegmentList) {
 	}
 }
 
+// OffsetsEqual returns true is all segments have the same marker-IDs and were
+// found at the same offsets.
 func (sl *SegmentList) OffsetsEqual(o *SegmentList) bool {
 	if len(o.segments) != len(sl.segments) {
 		return false
@@ -49,14 +54,17 @@ func (sl *SegmentList) OffsetsEqual(o *SegmentList) bool {
 	return true
 }
 
+// Segments returns the underlying slice of segments.
 func (sl *SegmentList) Segments() []*Segment {
 	return sl.segments
 }
 
+// Add adds another segment.
 func (sl *SegmentList) Add(s *Segment) {
 	sl.segments = append(sl.segments, s)
 }
 
+// Print prints segment info.
 func (sl *SegmentList) Print() {
 	if len(sl.segments) == 0 {
 		fmt.Printf("No segments.\n")
@@ -295,6 +303,7 @@ func (sl *SegmentList) DropExif() (wasDropped bool, err error) {
 	return false, nil
 }
 
+// Write writes the segment data to the given `io.Writer`.
 func (sl *SegmentList) Write(w io.Writer) (err error) {
 	defer func() {
 		if state := recover(); state != nil {
