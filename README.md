@@ -7,4 +7,4 @@
 
 Parse raw JPEG data into individual segments of data. You can print or export this data, including hash digests for each. You can also parse/modify the EXIF data and write an updated image.
 
-XMP data can also be extracted. The provided CLI tool can print a prettified version of the XMP content (if present).
+EXIF, XMP, and IPTC data can also be extracted. The provided CLI tool can print this data as well.
