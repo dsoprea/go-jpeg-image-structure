@@ -9,21 +9,36 @@ import (
 	"encoding/hex"
 
 	"github.com/dsoprea/go-exif/v2"
+	"github.com/dsoprea/go-iptc"
 	"github.com/dsoprea/go-logging"
+	"github.com/dsoprea/go-photoshop-info-format"
 	"github.com/dsoprea/go-utility/image"
 )
 
-var (
-	xmpPrefix = []byte("http://ns.adobe.com/xap/1.0/\000")
-
-	// exifPrefix is the prefix found at the top of an EXIF slice. This is JPEG-
-	// specific.
-	exifPrefix = []byte{'E', 'x', 'i', 'f', 0, 0}
+const (
+	pirIptcImageResourceId = uint16(0x0404)
 )
 
 var (
-	// ErrNoXmp is returned if XMP data was requested but no XMP data was found.
+	// exifPrefix is the prefix found at the top of an EXIF slice. This is JPEG-
+	// specific.
+	exifPrefix = []byte{'E', 'x', 'i', 'f', 0, 0}
+
+	xmpPrefix = []byte("http://ns.adobe.com/xap/1.0/\000")
+
+	ps30Prefix = []byte("Photoshop 3.0\000")
+)
+
+var (
+	// ErrNoXmp is returned if XMP data was requested but not found.
 	ErrNoXmp = errors.New("no XMP data")
+
+	// ErrNoIptc is returned if IPTC data was requested but not found.
+	ErrNoIptc = errors.New("no IPTC data")
+
+	// ErrNoPhotoshopData is returned if Photoshop info was requested but not
+	// found.
+	ErrNoPhotoshopData = errors.New("no photoshop data")
 )
 
 // SofSegment has info read from a SOF segment.
@@ -69,6 +84,9 @@ type Segment struct {
 	MarkerName string
 	Offset     int
 	Data       []byte
+
+	photoshopInfo map[uint16]photoshopinfo.Photoshop30InfoRecord
+	iptcTags      map[iptc.StreamTagKey][]iptc.TagData
 }
 
 // SetExif encodes and sets EXIF data into this segment.
@@ -173,7 +191,7 @@ func (s *Segment) IsExif() bool {
 		return false
 	}
 
-	if bytes.Compare(s.Data[:len_], exifPrefix) != 0 {
+	if bytes.Equal(s.Data[:len_], exifPrefix) == false {
 		return false
 	}
 
@@ -194,7 +212,7 @@ func (s *Segment) IsXmp() bool {
 		return false
 	}
 
-	if bytes.Compare(s.Data[:len_], xmpPrefix) != 0 {
+	if bytes.Equal(s.Data[:len_], xmpPrefix) == false {
 		return false
 	}
 
@@ -224,6 +242,105 @@ func (s *Segment) FormattedXmp() (formatted string, err error) {
 	log.PanicIf(err)
 
 	return formatted, nil
+}
+
+func (s *Segment) parsePhotoshopInfo() (photoshopInfo map[uint16]photoshopinfo.Photoshop30InfoRecord, err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+	if s.photoshopInfo != nil {
+		return s.photoshopInfo, nil
+	}
+
+	if s.MarkerId != MARKER_APP13 {
+		return nil, ErrNoPhotoshopData
+	}
+
+	len_ := len(ps30Prefix)
+
+	if len(s.Data) < len_ {
+		return nil, ErrNoPhotoshopData
+	}
+
+	if bytes.Equal(s.Data[:len_], ps30Prefix) == false {
+		return nil, ErrNoPhotoshopData
+	}
+
+	data := s.Data[len_:]
+	b := bytes.NewBuffer(data)
+
+	// Parse it.
+
+	pirIndex, err := photoshopinfo.ReadPhotoshop30Info(b)
+	log.PanicIf(err)
+
+	s.photoshopInfo = pirIndex
+
+	return s.photoshopInfo, nil
+}
+
+// IsIptc returns true if XMP data.
+func (s *Segment) IsIptc() bool {
+	// TODO(dustin): Add test
+
+	// There's a cost to determining if there's IPTC data, so we won't do it
+	// more than once.
+	if s.iptcTags != nil {
+		return true
+	}
+
+	photoshopInfo, err := s.parsePhotoshopInfo()
+	if err != nil {
+		if err == ErrNoPhotoshopData {
+			return false
+		}
+
+		log.Panic(err)
+	}
+
+	// Bail if the Photoshop info doesn't have IPTC data.
+
+	_, found := photoshopInfo[pirIptcImageResourceId]
+	if found == false {
+		return false
+	}
+
+	return true
+}
+
+// Iptc parses Photoshop info (if present) and then parses the IPTC info inside
+// it (if present).
+func (s *Segment) Iptc() (tags map[iptc.StreamTagKey][]iptc.TagData, err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+	// Cache the parse.
+	if s.iptcTags != nil {
+		return s.iptcTags, nil
+	}
+
+	photoshopInfo, err := s.parsePhotoshopInfo()
+	log.PanicIf(err)
+
+	iptcPir, found := photoshopInfo[pirIptcImageResourceId]
+	if found == false {
+		return nil, ErrNoIptc
+	}
+
+	b := bytes.NewBuffer(iptcPir.Data)
+
+	tags, err = iptc.ParseStream(b)
+	log.PanicIf(err)
+
+	s.iptcTags = tags
+
+	return tags, nil
 }
 
 var (

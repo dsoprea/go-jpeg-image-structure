@@ -7,19 +7,25 @@ import (
     "encoding/json"
     "io/ioutil"
 
-    "github.com/dsoprea/go-jpeg-image-structure"
+    "github.com/dsoprea/go-iptc"
     "github.com/dsoprea/go-logging"
     "github.com/jessevdk/go-flags"
+
+    "github.com/dsoprea/go-jpeg-image-structure"
 )
+
+// TODO(dustin): Add comments to all of these structs.
 
 var (
     options = &struct {
-        Filepath     string `short:"f" long:"filepath" required:"true" description:"File-path of JPEG image ('-' for STDIN)"`
-        JsonAsList   bool   `short:"l" long:"json-list" description:"Print segments as a JSON list"`
-        JsonAsObject bool   `short:"o" long:"json-object" description:"Print segments as a JSON object"`
-        IncludeData  bool   `short:"d" long:"data" description:"Include actual JPEG data (only with JSON)"`
-        Verbose      bool   `short:"v" long:"verbose" description:"Enable logging verbosity"`
-        JustXmp      bool   `short:"x" long:"just-xmp" description:"Just print raw XMP XML. Fails if not present."`
+        Filepath       string `short:"f" long:"filepath" required:"true" description:"File-path of JPEG image ('-' for STDIN)"`
+        JsonAsList     bool   `short:"l" long:"json-list" description:"Print segments as a JSON list"`
+        JsonAsObject   bool   `short:"o" long:"json-object" description:"Print segments as a JSON object"`
+        IncludeData    bool   `short:"d" long:"data" description:"Include actual JPEG data (only with JSON)"`
+        Verbose        bool   `short:"v" long:"verbose" description:"Enable logging verbosity"`
+        JustXmp        bool   `short:"x" long:"just-xmp" description:"Just print raw XMP XML. Fails if not present."`
+        JustFullIptc   bool   `short:"i" long:"just-full-iptc" description:"Just print raw IPTC data. Fails if not present."`
+        JustSimpleIptc bool   `short:"s" long:"just-simple-iptc" description:"Just print raw IPTC data. Omit non-standard tags, omit non-human-readable text, omit repeated tags). Fails if not present."`
     }{}
 )
 
@@ -89,6 +95,32 @@ func main() {
         log.PanicIf(err)
 
         fmt.Println(xml)
+
+        os.Exit(0)
+    }
+
+    if options.JustSimpleIptc == true {
+        tags, err := sl.Iptc()
+        log.PanicIf(err)
+
+        distilled := iptc.GetSimpleDictionaryFromParsedTags(tags)
+        sorted := jpegstructure.SortStringStringMap(distilled)
+
+        for _, pair := range sorted {
+            fmt.Printf("%s: %s\n", pair[0], pair[1])
+        }
+
+        os.Exit(0)
+    } else if options.JustFullIptc == true {
+        tags, err := sl.Iptc()
+        log.PanicIf(err)
+
+        distilled := iptc.GetDictionaryFromParsedTags(tags)
+        sorted := jpegstructure.SortStringStringMap(distilled)
+
+        for _, pair := range sorted {
+            fmt.Printf("%s: %s\n", pair[0], pair[1])
+        }
 
         os.Exit(0)
     }

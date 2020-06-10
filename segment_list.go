@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 
 	"github.com/dsoprea/go-exif/v2"
+	"github.com/dsoprea/go-iptc"
 	"github.com/dsoprea/go-logging"
 )
 
@@ -77,6 +78,15 @@ func (sl *SegmentList) Print() {
 			}
 		}
 
+		iptcIndex, _, err := sl.FindIptc()
+		if err != nil {
+			if err == ErrNoIptc {
+				iptcIndex = -1
+			} else {
+				log.Panic(err)
+			}
+		}
+
 		for i, s := range sl.segments {
 			fmt.Printf("%2d: %s", i, s.EmbeddedString())
 
@@ -84,6 +94,8 @@ func (sl *SegmentList) Print() {
 				fmt.Printf(" [EXIF]")
 			} else if i == xmpIndex {
 				fmt.Printf(" [XMP]")
+			} else if i == iptcIndex {
+				fmt.Printf(" [IPTC]")
 			}
 
 			fmt.Printf("\n")
@@ -166,6 +178,23 @@ func (sl *SegmentList) FindXmp() (index int, segment *Segment, err error) {
 	return -1, nil, ErrNoXmp
 }
 
+// FindIptc returns the the segment that hosts the IPTC data (if present).
+func (sl *SegmentList) FindIptc() (index int, segment *Segment, err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+	for i, s := range sl.segments {
+		if s.IsIptc() == true {
+			return i, s, nil
+		}
+	}
+
+	return -1, nil, ErrNoIptc
+}
+
 // Exif returns an `exif.Ifd` instance for the EXIF data we currently have.
 func (sl *SegmentList) Exif() (rootIfd *exif.Ifd, rawExif []byte, err error) {
 	defer func() {
@@ -181,6 +210,24 @@ func (sl *SegmentList) Exif() (rootIfd *exif.Ifd, rawExif []byte, err error) {
 	log.PanicIf(err)
 
 	return rootIfd, rawExif, nil
+}
+
+func (sl *SegmentList) Iptc() (tags map[iptc.StreamTagKey][]iptc.TagData, err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+	// TODO(dustin): Add comment and return data.
+
+	_, s, err := sl.FindIptc()
+	log.PanicIf(err)
+
+	tags, err = s.Iptc()
+	log.PanicIf(err)
+
+	return tags, nil
 }
 
 // ConstructExifBuilder returns an `exif.IfdBuilder` instance (needed for

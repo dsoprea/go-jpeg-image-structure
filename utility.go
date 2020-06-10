@@ -3,6 +3,7 @@ package jpegstructure
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/dsoprea/go-logging"
@@ -82,4 +83,28 @@ func FormatXml(raw string) (formatted string, err error) {
 	formatted = strings.TrimSpace(formatted)
 
 	return formatted, nil
+}
+
+// SortStringStringMap sorts a string-string dictionary and returns it as a list
+// of 2-tuples.
+func SortStringStringMap(data map[string]string) (sorted [][2]string) {
+	// Sort keys.
+
+	sortedKeys := make([]string, len(data))
+	i := 0
+	for key, _ := range data {
+		sortedKeys[i] = key
+		i++
+	}
+
+	sort.Strings(sortedKeys)
+
+	// Build result.
+
+	sorted = make([][2]string, len(sortedKeys))
+	for i, key := range sortedKeys {
+		sorted[i] = [2]string{key, data[key]}
+	}
+
+	return sorted
 }
