@@ -212,6 +212,7 @@ func (sl *SegmentList) Exif() (rootIfd *exif.Ifd, rawExif []byte, err error) {
 	return rootIfd, rawExif, nil
 }
 
+// Iptc returns embedded IPTC data if present.
 func (sl *SegmentList) Iptc() (tags map[iptc.StreamTagKey][]iptc.TagData, err error) {
 	defer func() {
 		if state := recover(); state != nil {
@@ -366,16 +367,16 @@ func (sl *SegmentList) Write(w io.Writer) (err error) {
 			sizeLen, found := markerLen[s.MarkerId]
 			if found == false || sizeLen == 2 {
 				sizeLen = 2
-				len_ := uint16(len(s.Data) + sizeLen)
+				l := uint16(len(s.Data) + sizeLen)
 
-				err = binary.Write(w, binary.BigEndian, &len_)
+				err = binary.Write(w, binary.BigEndian, &l)
 				log.PanicIf(err)
 
 				offset += 2
 			} else if sizeLen == 4 {
-				len_ := uint32(len(s.Data) + sizeLen)
+				l := uint32(len(s.Data) + sizeLen)
 
-				err = binary.Write(w, binary.BigEndian, &len_)
+				err = binary.Write(w, binary.BigEndian, &l)
 				log.PanicIf(err)
 
 				offset += 4

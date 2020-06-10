@@ -21,19 +21,6 @@ var (
 	}{}
 )
 
-type SegmentResult struct {
-	MarkerId   byte   `json:"marker_id"`
-	MarkerName string `json:"marker_name"`
-	Offset     int    `json:"offset"`
-	Data       []byte `json:"data"`
-}
-
-type SegmentIndexItem struct {
-	MarkerName string `json:"marker_name"`
-	Offset     int    `json:"offset"`
-	Data       []byte `json:"data"`
-}
-
 func main() {
 	defer func() {
 		if errRaw := recover(); errRaw != nil {

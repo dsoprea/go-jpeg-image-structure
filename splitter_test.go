@@ -87,13 +87,13 @@ func Test_JpegSplitter_Split(t *testing.T) {
 	}
 
 	expectedSofList := []SofSegment{
-		SofSegment{
+		{
 			BitsPerSample:  8,
 			Width:          3840,
 			Height:         2560,
 			ComponentCount: 3,
 		},
-		SofSegment{
+		{
 			BitsPerSample:  0,
 			Width:          1281,
 			Height:         1,

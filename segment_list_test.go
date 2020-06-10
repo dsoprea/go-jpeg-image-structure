@@ -172,8 +172,8 @@ func TestSegmentList_SetExif(t *testing.T) {
 	}()
 
 	initialSegments := []*Segment{
-		&Segment{MarkerId: 0},
-		&Segment{MarkerId: 0},
+		{MarkerId: 0},
+		{MarkerId: 0},
 	}
 
 	sl := NewSegmentList(initialSegments)
@@ -262,8 +262,6 @@ func ExampleSegmentList_SetExif_unknowntype() {
 	err = sl.Write(b)
 	log.PanicIf(err)
 
-	updatedImageBytes := b.Bytes()
-	updatedImageBytes = updatedImageBytes
 	// Output:
 }
 
@@ -308,8 +306,6 @@ func ExampleSegmentList_SetExif() {
 	err = sl.Write(b)
 	log.PanicIf(err)
 
-	updatedImageBytes := b.Bytes()
-	updatedImageBytes = updatedImageBytes
 	// Output:
 }
 
@@ -567,7 +563,7 @@ func TestSegmentList_Validate(t *testing.T) {
 	log.PanicIf(err)
 
 	segments := []*Segment{
-		&Segment{
+		{
 			MarkerId: 0x0,
 			Offset:   0x0,
 		},

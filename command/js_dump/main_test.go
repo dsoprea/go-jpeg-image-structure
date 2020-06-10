@@ -1,54 +1,54 @@
 package main
 
 import (
-  "bytes"
-  "fmt"
-  "path"
-  "testing"
+	"bytes"
+	"fmt"
+	"path"
+	"testing"
 
-  "encoding/json"
-  "os/exec"
+	"encoding/json"
+	"os/exec"
 
-  "github.com/dsoprea/go-logging"
+	"github.com/dsoprea/go-logging"
 
-  "github.com/dsoprea/go-jpeg-image-structure"
+	"github.com/dsoprea/go-jpeg-image-structure"
 )
 
 type JsonResultJpegSegmentListItem struct {
-  MarkerId   byte   `json:"marker_id"`
-  MarkerName string `json:"market_name"`
-  Offset     int    `json:"offset"`
-  Data       []byte `json:"data"`
+	MarkerId   byte   `json:"marker_id"`
+	MarkerName string `json:"market_name"`
+	Offset     int    `json:"offset"`
+	Data       []byte `json:"data"`
 }
 
 type JsonResultJpegSegmentIndexItem struct {
-  MarkerName string `json:"marker_name"`
-  Offset     int    `json:"offset"`
-  Data       []byte `json:"data"`
+	MarkerName string `json:"marker_name"`
+	Offset     int    `json:"offset"`
+	Data       []byte `json:"data"`
 }
 
 func TestMain_Plain(t *testing.T) {
-  imageFilepath := jpegstructure.GetTestImageFilepath()
-  appFilepath := getAppFilepath()
+	imageFilepath := jpegstructure.GetTestImageFilepath()
+	appFilepath := getAppFilepath()
 
-  cmd := exec.Command(
-    "go", "run", appFilepath,
-    "--filepath", imageFilepath)
+	cmd := exec.Command(
+		"go", "run", appFilepath,
+		"--filepath", imageFilepath)
 
-  b := new(bytes.Buffer)
-  cmd.Stdout = b
-  cmd.Stderr = b
+	b := new(bytes.Buffer)
+	cmd.Stdout = b
+	cmd.Stderr = b
 
-  err := cmd.Run()
-  actual := b.String()
+	err := cmd.Run()
+	actual := b.String()
 
-  if err != nil {
-    fmt.Printf(actual)
-    panic(err)
-  }
+	if err != nil {
+		fmt.Printf(actual)
+		panic(err)
+	}
 
-  expected :=
-    `JPEG Segments:
+	expected :=
+		`JPEG Segments:
 
  0: OFFSET=(0x00000000          0) ID=(0xd8) NAME=[SOI  ] SIZE=(         0) SHA1=[da39a3ee5e6b4b0d3255bfef95601890afd80709]
  1: OFFSET=(0x00000002          2) ID=(0xe1) NAME=[APP1 ] SIZE=(     32942) SHA1=[81dce16a2abe2232049b5aa430ccf4095d240071] [EXIF]
@@ -61,43 +61,43 @@ func TestMain_Plain(t *testing.T) {
  8: OFFSET=(0x00554d6d    5590381) ID=(0xd9) NAME=[EOI  ] SIZE=(         0) SHA1=[da39a3ee5e6b4b0d3255bfef95601890afd80709]
 `
 
-  if actual != expected {
-    fmt.Printf("ACTUAL:\n%s\n", actual)
-    fmt.Printf("EXPECTED:\n%s\n", expected)
+	if actual != expected {
+		fmt.Printf("ACTUAL:\n%s\n", actual)
+		fmt.Printf("EXPECTED:\n%s\n", expected)
 
-    t.Fatalf("Output not expected.")
-  }
+		t.Fatalf("Output not expected.")
+	}
 }
 
 func TestMain_Json_NoData(t *testing.T) {
-  defer func() {
-    if state := recover(); state != nil {
-      err := log.Wrap(state.(error))
-      log.PrintErrorf(err, "Test failure.")
-    }
-  }()
+	defer func() {
+		if state := recover(); state != nil {
+			err := log.Wrap(state.(error))
+			log.PrintErrorf(err, "Test failure.")
+		}
+	}()
 
-  imageFilepath := jpegstructure.GetTestImageFilepath()
-  appFilepath := getAppFilepath()
+	imageFilepath := jpegstructure.GetTestImageFilepath()
+	appFilepath := getAppFilepath()
 
-  cmd := exec.Command(
-    "go", "run", appFilepath,
-    "--json-list",
-    "--filepath", imageFilepath)
+	cmd := exec.Command(
+		"go", "run", appFilepath,
+		"--json-list",
+		"--filepath", imageFilepath)
 
-  b := new(bytes.Buffer)
-  cmd.Stdout = b
-  cmd.Stderr = b
+	b := new(bytes.Buffer)
+	cmd.Stdout = b
+	cmd.Stderr = b
 
-  err := cmd.Run()
-  actual := b.String()
+	err := cmd.Run()
+	actual := b.String()
 
-  if err != nil {
-    fmt.Println(actual)
-    panic(err)
-  }
+	if err != nil {
+		fmt.Println(actual)
+		panic(err)
+	}
 
-  expected := `[
+	expected := `[
   {
     "marker_id": 216,
     "marker_name": "SOI",
@@ -164,35 +164,35 @@ func TestMain_Json_NoData(t *testing.T) {
 ]
 `
 
-  if actual != expected {
-    fmt.Printf("ACTUAL:\n%s\n\nEXPECTED:\n%s\n", actual, expected)
+	if actual != expected {
+		fmt.Printf("ACTUAL:\n%s\n\nEXPECTED:\n%s\n", actual, expected)
 
-    t.Fatalf("output not expected.")
-  }
+		t.Fatalf("output not expected.")
+	}
 }
 
 func TestMain_Json_NoData_SegmentIndex(t *testing.T) {
-  imageFilepath := jpegstructure.GetTestImageFilepath()
-  appFilepath := getAppFilepath()
+	imageFilepath := jpegstructure.GetTestImageFilepath()
+	appFilepath := getAppFilepath()
 
-  cmd := exec.Command(
-    "go", "run", appFilepath,
-    "--json-object",
-    "--filepath", imageFilepath)
+	cmd := exec.Command(
+		"go", "run", appFilepath,
+		"--json-object",
+		"--filepath", imageFilepath)
 
-  b := new(bytes.Buffer)
-  cmd.Stdout = b
-  cmd.Stderr = b
+	b := new(bytes.Buffer)
+	cmd.Stdout = b
+	cmd.Stderr = b
 
-  err := cmd.Run()
-  actual := b.String()
+	err := cmd.Run()
+	actual := b.String()
 
-  if err != nil {
-    fmt.Println(actual)
-    panic(err)
-  }
+	if err != nil {
+		fmt.Println(actual)
+		panic(err)
+	}
 
-  expected := `{
+	expected := `{
   "!SCANDATA": [
     {
       "offset": 36085,
@@ -257,58 +257,58 @@ func TestMain_Json_NoData_SegmentIndex(t *testing.T) {
 }
 `
 
-  if actual != expected {
-    fmt.Printf("ACTUAL:\n%s\n\nEXPECTED:\n%s\n", actual, expected)
+	if actual != expected {
+		fmt.Printf("ACTUAL:\n%s\n\nEXPECTED:\n%s\n", actual, expected)
 
-    t.Fatalf("output not expected.")
-  }
+		t.Fatalf("output not expected.")
+	}
 }
 
 func TestMain_Json_Data(t *testing.T) {
-  imageFilepath := jpegstructure.GetTestImageFilepath()
-  appFilepath := getAppFilepath()
+	imageFilepath := jpegstructure.GetTestImageFilepath()
+	appFilepath := getAppFilepath()
 
-  cmd := exec.Command(
-    "go", "run", appFilepath,
-    "--json-list",
-    "--data",
-    "--filepath", imageFilepath)
+	cmd := exec.Command(
+		"go", "run", appFilepath,
+		"--json-list",
+		"--data",
+		"--filepath", imageFilepath)
 
-  b := new(bytes.Buffer)
-  cmd.Stdout = b
-  cmd.Stderr = b
+	b := new(bytes.Buffer)
+	cmd.Stdout = b
+	cmd.Stderr = b
 
-  err := cmd.Run()
-  raw := b.Bytes()
+	err := cmd.Run()
+	raw := b.Bytes()
 
-  if err != nil {
-    fmt.Printf(string(raw))
-    panic(err)
-  }
+	if err != nil {
+		fmt.Printf(string(raw))
+		panic(err)
+	}
 
-  result := make([]JsonResultJpegSegmentListItem, 0)
+	result := make([]JsonResultJpegSegmentListItem, 0)
 
-  err = json.Unmarshal(raw, &result)
-  log.PanicIf(err)
+	err = json.Unmarshal(raw, &result)
+	log.PanicIf(err)
 
-  if len(result) != 9 {
-    t.Fatalf("JPEG segment count not correct: (%d)", len(result))
-  }
+	if len(result) != 9 {
+		t.Fatalf("JPEG segment count not correct: (%d)", len(result))
+	}
 
-  hasData := false
-  for _, s := range result {
-    if s.Data != nil {
-      hasData = true
-      break
-    }
-  }
+	hasData := false
+	for _, s := range result {
+		if s.Data != nil {
+			hasData = true
+			break
+		}
+	}
 
-  if hasData != true {
-    t.Fatalf("No segments have data but were expected to.")
-  }
+	if hasData != true {
+		t.Fatalf("No segments have data but were expected to.")
+	}
 }
 
 func getAppFilepath() string {
-  moduleRootPath := jpegstructure.GetModuleRootPath()
-  return path.Join(moduleRootPath, "command", "js_dump", "main.go")
+	moduleRootPath := jpegstructure.GetModuleRootPath()
+	return path.Join(moduleRootPath, "command", "js_dump", "main.go")
 }

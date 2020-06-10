@@ -5,118 +5,118 @@ import (
 )
 
 const (
-	// MARKER_SOI
+	// MARKER_SOI marker
 	MARKER_SOI = 0xd8
 
-	// MARKER_EOI
+	// MARKER_EOI marker
 	MARKER_EOI = 0xd9
 
-	// MARKER_SOS
+	// MARKER_SOS marker
 	MARKER_SOS = 0xda
 
-	// MARKER_SOD
+	// MARKER_SOD marker
 	MARKER_SOD = 0x93
 
-	// MARKER_DQT
+	// MARKER_DQT marker
 	MARKER_DQT = 0xdb
 
-	// MARKER_APP0
+	// MARKER_APP0 marker
 	MARKER_APP0 = 0xe0
 
-	// MARKER_APP1
+	// MARKER_APP1 marker
 	MARKER_APP1 = 0xe1
 
-	// MARKER_APP2
+	// MARKER_APP2 marker
 	MARKER_APP2 = 0xe2
 
-	// MARKER_APP3
+	// MARKER_APP3 marker
 	MARKER_APP3 = 0xe3
 
-	// MARKER_APP4
+	// MARKER_APP4 marker
 	MARKER_APP4 = 0xe4
 
-	// MARKER_APP5
+	// MARKER_APP5 marker
 	MARKER_APP5 = 0xe5
 
-	// MARKER_APP6
+	// MARKER_APP6 marker
 	MARKER_APP6 = 0xe6
 
-	// MARKER_APP7
+	// MARKER_APP7 marker
 	MARKER_APP7 = 0xe7
 
-	// MARKER_APP8
+	// MARKER_APP8 marker
 	MARKER_APP8 = 0xe8
 
-	// MARKER_APP10
+	// MARKER_APP10 marker
 	MARKER_APP10 = 0xea
 
-	// MARKER_APP12
+	// MARKER_APP12 marker
 	MARKER_APP12 = 0xec
 
-	// MARKER_APP13
+	// MARKER_APP13 marker
 	MARKER_APP13 = 0xed
 
-	// MARKER_APP14
+	// MARKER_APP14 marker
 	MARKER_APP14 = 0xee
 
-	// MARKER_APP15
+	// MARKER_APP15 marker
 	MARKER_APP15 = 0xef
 
-	// MARKER_COM
+	// MARKER_COM marker
 	MARKER_COM = 0xfe
 
-	// MARKER_CME
+	// MARKER_CME marker
 	MARKER_CME = 0x64
 
-	// MARKER_SIZ
+	// MARKER_SIZ marker
 	MARKER_SIZ = 0x51
 
-	// MARKER_DHT
+	// MARKER_DHT marker
 	MARKER_DHT = 0xc4
 
-	// MARKER_JPG
+	// MARKER_JPG marker
 	MARKER_JPG = 0xc8
 
-	// MARKER_DAC
+	// MARKER_DAC marker
 	MARKER_DAC = 0xcc
 
-	// MARKER_SOF0
+	// MARKER_SOF0 marker
 	MARKER_SOF0 = 0xc0
 
-	// MARKER_SOF1
+	// MARKER_SOF1 marker
 	MARKER_SOF1 = 0xc1
 
-	// MARKER_SOF2
+	// MARKER_SOF2 marker
 	MARKER_SOF2 = 0xc2
 
-	// MARKER_SOF3
+	// MARKER_SOF3 marker
 	MARKER_SOF3 = 0xc3
 
-	// MARKER_SOF5
+	// MARKER_SOF5 marker
 	MARKER_SOF5 = 0xc5
 
-	// MARKER_SOF6
+	// MARKER_SOF6 marker
 	MARKER_SOF6 = 0xc6
 
-	// MARKER_SOF7
+	// MARKER_SOF7 marker
 	MARKER_SOF7 = 0xc7
 
-	// MARKER_SOF9
+	// MARKER_SOF9 marker
 	MARKER_SOF9 = 0xc9
 
-	// MARKER_SOF10
+	// MARKER_SOF10 marker
 	MARKER_SOF10 = 0xca
 
-	// MARKER_SOF11
+	// MARKER_SOF11 marker
 	MARKER_SOF11 = 0xcb
 
-	// MARKER_SOF13
+	// MARKER_SOF13 marker
 	MARKER_SOF13 = 0xcd
 
-	// MARKER_SOF14
+	// MARKER_SOF14 marker
 	MARKER_SOF14 = 0xce
 
-	// MARKER_SOF15
+	// MARKER_SOF15 marker
 	MARKER_SOF15 = 0xcf
 )
 

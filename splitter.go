@@ -10,6 +10,8 @@ import (
 	"github.com/dsoprea/go-logging"
 )
 
+// JpegSplitter uses the Go stream splitter to divide the JPEG stream into
+// segments.
 type JpegSplitter struct {
 	lastMarkerId   byte
 	lastMarkerName string
@@ -23,6 +25,7 @@ type JpegSplitter struct {
 	scandataOffset int
 }
 
+// NewJpegSplitter returns a new JpegSplitter.
 func NewJpegSplitter(visitor interface{}) *JpegSplitter {
 	return &JpegSplitter{
 		segments: NewSegmentList(nil),
@@ -30,22 +33,27 @@ func NewJpegSplitter(visitor interface{}) *JpegSplitter {
 	}
 }
 
+// Segments returns all found segments.
 func (js *JpegSplitter) Segments() *SegmentList {
 	return js.segments
 }
 
+// MarkerId returns the ID of the last processed marker.
 func (js *JpegSplitter) MarkerId() byte {
 	return js.lastMarkerId
 }
 
+// MarkerName returns the name of the last-processed marker.
 func (js *JpegSplitter) MarkerName() string {
 	return js.lastMarkerName
 }
 
+// Counter returns the number of processed segments.
 func (js *JpegSplitter) Counter() int {
 	return js.counter
 }
 
+// IsScanData returns whether the last processed segment was scan-data.
 func (js *JpegSplitter) IsScanData() bool {
 	return js.lastIsScanData
 }
@@ -220,22 +228,22 @@ func (js *JpegSplitter) readSegment(data []byte) (count int, err error) {
 			return 0, nil
 		}
 
-		len_ := uint16(0)
-		err = binary.Read(b, binary.BigEndian, &len_)
+		l := uint16(0)
+		err = binary.Read(b, binary.BigEndian, &l)
 		log.PanicIf(err)
 
-		if len_ <= 2 {
+		if l <= 2 {
 			log.Panicf("length of size read for non-special marker (%02x) is unexpectedly not more than two.", markerId)
 		}
 
-		// (len_ includes the bytes of the length itself.)
-		payloadLength = int(len_) - 2
+		// (l includes the bytes of the length itself.)
+		payloadLength = int(l) - 2
 		jpegLogger.Debugf(nil, "DataLength (dynamically-sized segment): (%d)", payloadLength)
 
 		i += 2
 	} else if sizeLen > 0 {
 
-		// Accomodates the non-zero markers in our marker index, which only
+		// Accommodates the non-zero markers in our marker index, which only
 		// represent J2C extensions.
 		//
 		// The length is an unsigned 32-bit network/big-endian.
@@ -251,12 +259,12 @@ func (js *JpegSplitter) readSegment(data []byte) (count int, err error) {
 			return 0, nil
 		}
 
-		len_ := uint32(0)
-		err = binary.Read(b, binary.BigEndian, &len_)
+		l := uint32(0)
+		err = binary.Read(b, binary.BigEndian, &l)
 		log.PanicIf(err)
 
-		payloadLength = int(len_) - 4
-		jpegLogger.Debugf(nil, "DataLength (four-byte-length segment): (%u)", len_)
+		payloadLength = int(l) - 4
+		jpegLogger.Debugf(nil, "DataLength (four-byte-length segment): (%u)", l)
 
 		i += 4
 	}
@@ -295,6 +303,7 @@ func (js *JpegSplitter) scanDataIsNext() bool {
 	return js.lastMarkerId == MARKER_SOS
 }
 
+// Split is the base splitting function that satisfies `bufio.SplitFunc`.
 func (js *JpegSplitter) Split(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	defer func() {
 		if state := recover(); state != nil {

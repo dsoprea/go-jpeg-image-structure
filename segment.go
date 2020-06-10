@@ -102,11 +102,11 @@ func (s *Segment) SetExif(ib *exif.IfdBuilder) (err error) {
 	exifData, err := ibe.EncodeToExif(ib)
 	log.PanicIf(err)
 
-	len_ := len(exifPrefix)
+	l := len(exifPrefix)
 
-	s.Data = make([]byte, len_+len(exifData))
+	s.Data = make([]byte, l+len(exifData))
 	copy(s.Data[0:], exifPrefix)
-	copy(s.Data[len_:], exifData)
+	copy(s.Data[l:], exifData)
 
 	return nil
 }
@@ -119,9 +119,9 @@ func (s *Segment) Exif() (rootIfd *exif.Ifd, data []byte, err error) {
 		}
 	}()
 
-	len_ := len(exifPrefix)
+	l := len(exifPrefix)
 
-	rawExif := s.Data[len_:]
+	rawExif := s.Data[l:]
 
 	jpegLogger.Debugf(nil, "Attempting to parse (%d) byte EXIF blob (Exif).", len(rawExif))
 
@@ -144,9 +144,9 @@ func (s *Segment) FlatExif() (exifTags []exif.ExifTag, err error) {
 
 	// TODO(dustin): Add test
 
-	len_ := len(exifPrefix)
+	l := len(exifPrefix)
 
-	rawExif := s.Data[len_:]
+	rawExif := s.Data[l:]
 
 	jpegLogger.Debugf(nil, "Attempting to parse (%d) byte EXIF blob (FlatExif).", len(rawExif))
 
@@ -185,13 +185,13 @@ func (s *Segment) IsExif() bool {
 
 	// TODO(dustin): Add test
 
-	len_ := len(exifPrefix)
+	l := len(exifPrefix)
 
-	if len(s.Data) < len_ {
+	if len(s.Data) < l {
 		return false
 	}
 
-	if bytes.Equal(s.Data[:len_], exifPrefix) == false {
+	if bytes.Equal(s.Data[:l], exifPrefix) == false {
 		return false
 	}
 
@@ -206,20 +206,20 @@ func (s *Segment) IsXmp() bool {
 
 	// TODO(dustin): Add test
 
-	len_ := len(xmpPrefix)
+	l := len(xmpPrefix)
 
-	if len(s.Data) < len_ {
+	if len(s.Data) < l {
 		return false
 	}
 
-	if bytes.Equal(s.Data[:len_], xmpPrefix) == false {
+	if bytes.Equal(s.Data[:l], xmpPrefix) == false {
 		return false
 	}
 
 	return true
 }
 
-// FormattedXml returns a formatted XML string. This only makes sense for a
+// FormattedXmp returns a formatted XML string. This only makes sense for a
 // segment comprised of XML data (like XMP).
 func (s *Segment) FormattedXmp() (formatted string, err error) {
 	defer func() {
@@ -234,9 +234,9 @@ func (s *Segment) FormattedXmp() (formatted string, err error) {
 		log.Panicf("not an XMP segment")
 	}
 
-	len_ := len(xmpPrefix)
+	l := len(xmpPrefix)
 
-	raw := string(s.Data[len_:])
+	raw := string(s.Data[l:])
 
 	formatted, err = FormatXml(raw)
 	log.PanicIf(err)
@@ -259,17 +259,17 @@ func (s *Segment) parsePhotoshopInfo() (photoshopInfo map[uint16]photoshopinfo.P
 		return nil, ErrNoPhotoshopData
 	}
 
-	len_ := len(ps30Prefix)
+	l := len(ps30Prefix)
 
-	if len(s.Data) < len_ {
+	if len(s.Data) < l {
 		return nil, ErrNoPhotoshopData
 	}
 
-	if bytes.Equal(s.Data[:len_], ps30Prefix) == false {
+	if bytes.Equal(s.Data[:l], ps30Prefix) == false {
 		return nil, ErrNoPhotoshopData
 	}
 
-	data := s.Data[len_:]
+	data := s.Data[l:]
 	b := bytes.NewBuffer(data)
 
 	// Parse it.

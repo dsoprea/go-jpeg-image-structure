@@ -92,7 +92,7 @@ func SortStringStringMap(data map[string]string) (sorted [][2]string) {
 
 	sortedKeys := make([]string, len(data))
 	i := 0
-	for key, _ := range data {
+	for key := range data {
 		sortedKeys[i] = key
 		i++
 	}
