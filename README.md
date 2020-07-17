@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/dsoprea/go-jpeg-image-structure.svg?branch=master)](https://travis-ci.org/dsoprea/go-jpeg-image-structure)
 [![Coverage Status](https://coveralls.io/repos/github/dsoprea/go-jpeg-image-structure/badge.svg?branch=master)](https://coveralls.io/github/dsoprea/go-jpeg-image-structure?branch=master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/dsoprea/go-jpeg-image-structure)](https://goreportcard.com/report/github.com/dsoprea/go-jpeg-image-structure)
-[![GoDoc](https://godoc.org/github.com/dsoprea/go-jpeg-image-structure?status.svg)](https://godoc.org/github.com/dsoprea/go-jpeg-image-structure)
+[![Go Report Card](https://goreportcard.com/badge/github.com/dsoprea/go-jpeg-image-structure/v2)](https://goreportcard.com/report/github.com/dsoprea/go-jpeg-image-structure/v2)
+[![GoDoc](https://godoc.org/github.com/dsoprea/go-jpeg-image-structure/v2?status.svg)](https://godoc.org/github.com/dsoprea/go-jpeg-image-structure/v2)
 
 ## Overview
 
