@@ -10,7 +10,7 @@ go 1.12
 // replace github.com/dsoprea/go-iptc => ../../go-iptc
 
 require (
-	github.com/dsoprea/go-exif/v3 v3.0.0-20200722033536-33ee3a8313da
+	github.com/dsoprea/go-exif/v3 v3.0.0-20200807075213-089aa48c91e6
 	github.com/dsoprea/go-iptc v0.0.0-20200609062250-162ae6b44feb
 	github.com/dsoprea/go-logging v0.0.0-20200710184922-b02d349568dd
 	github.com/dsoprea/go-photoshop-info-format v0.0.0-20200609050348-3db9b63b202c
