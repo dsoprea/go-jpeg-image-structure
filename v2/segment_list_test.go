@@ -333,6 +333,18 @@ func TestSegmentList_ConstructExifBuilder(t *testing.T) {
 	// As long as ConstructExifBuilder() returns an `exif.IfdBuilder`, this test is satisfied.
 }
 
+func TestSegmentList_ConstructExifBuilder__WithUndefinedUnknownTags(t *testing.T) {
+	jmp := NewJpegMediaParser()
+
+	intfc, err := jmp.ParseFile("/tmp/98129047-6cd93000-1e97-11eb-9a21-d2530dcc436a.jpg")
+	log.PanicIf(err)
+
+	sl := intfc.(*SegmentList)
+
+	_, err = sl.ConstructExifBuilder()
+	log.PanicIf(err)
+}
+
 func TestSegmentList_DumpExif(t *testing.T) {
 	filepath := GetTestImageFilepath()
 
