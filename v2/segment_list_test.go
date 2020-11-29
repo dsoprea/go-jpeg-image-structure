@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-	"time"
 
 	"io/ioutil"
 
@@ -289,15 +288,12 @@ func ExampleSegmentList_SetExif() {
 	rootIb, err := sl.ConstructExifBuilder()
 	log.PanicIf(err)
 
-	ifdPath := "IFD0"
+	ifdPath := "IFD/Exif"
 
 	ifdIb, err := exif.GetOrCreateIbFromRootIb(rootIb, ifdPath)
 	log.PanicIf(err)
 
-	now := time.Now().UTC()
-	updatedTimestampPhrase := exifcommon.ExifFullTimestampString(now)
-
-	err = ifdIb.SetStandardWithName("DateTime", updatedTimestampPhrase)
+	err = ifdIb.SetStandardWithName("CameraOwnerName", "TestOwner")
 	log.PanicIf(err)
 
 	// Update the exif segment.
@@ -310,7 +306,27 @@ func ExampleSegmentList_SetExif() {
 	err = sl.Write(b)
 	log.PanicIf(err)
 
+	// Validate.
+
+	d := b.Bytes()
+
+	intfc, err = jmp.ParseBytes(d)
+	log.PanicIf(err)
+
+	sl = intfc.(*SegmentList)
+
+	_, _, exifTags, err := sl.DumpExif()
+	log.PanicIf(err)
+
+	for _, et := range exifTags {
+		if et.IfdPath == "IFD/Exif" && et.TagName == "CameraOwnerName" {
+			fmt.Printf("Value: [%s]\n", et.FormattedFirst)
+			break
+		}
+	}
+
 	// Output:
+	// Value: [TestOwner]
 }
 
 func TestSegmentList_ConstructExifBuilder(t *testing.T) {
