@@ -280,7 +280,7 @@ func ExampleSegmentList_SetExif() {
 
 	sl := intfc.(*SegmentList)
 
-	// Update the UserComment tag.
+	// Update the DateTime tag.
 
 	rootIb, err := sl.ConstructExifBuilder()
 	log.PanicIf(err)
@@ -320,8 +320,6 @@ func TestSegmentList_ConstructExifBuilder(t *testing.T) {
 	log.PanicIf(err)
 
 	sl := intfc.(*SegmentList)
-
-	// Update the UserComment tag.
 
 	_, err = sl.ConstructExifBuilder()
 	log.PanicIf(err)

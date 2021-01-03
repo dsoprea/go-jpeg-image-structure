@@ -283,7 +283,7 @@ func ExampleSegmentList_SetExif() {
 
 	sl := intfc.(*SegmentList)
 
-	// Update the UserComment tag.
+	// Update the CameraOwnerName tag.
 
 	rootIb, err := sl.ConstructExifBuilder()
 	log.PanicIf(err)
