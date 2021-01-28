@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 
 	"github.com/dsoprea/go-exif/v3"
+	"github.com/dsoprea/go-exif/v3/common"
 	"github.com/dsoprea/go-iptc"
 	"github.com/dsoprea/go-logging"
 )
@@ -241,11 +242,31 @@ func (sl *SegmentList) ConstructExifBuilder() (rootIb *exif.IfdBuilder, err erro
 	}()
 
 	rootIfd, _, err := sl.Exif()
-	log.PanicIf(err)
+	if log.Is(err, exif.ErrNoExif) == true {
+		// No EXIF. Just create a boilerplate builder.
 
-	ib := exif.NewIfdBuilderFromExistingChain(rootIfd)
+		im := exifcommon.NewIfdMapping()
 
-	return ib, nil
+		err := exifcommon.LoadStandardIfds(im)
+		log.PanicIf(err)
+
+		ti := exif.NewTagIndex()
+
+		rootIb :=
+			exif.NewIfdBuilder(
+				im,
+				ti,
+				exifcommon.IfdStandardIfdIdentity,
+				exifcommon.EncodeDefaultByteOrder)
+
+		return rootIb, nil
+	} else if err != nil {
+		log.Panic(err)
+	}
+
+	rootIb = exif.NewIfdBuilderFromExistingChain(rootIfd)
+
+	return rootIb, nil
 }
 
 // DumpExif returns an unstructured list of tags (useful when just reviewing).
