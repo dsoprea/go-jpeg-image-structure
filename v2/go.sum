@@ -6,6 +6,8 @@ github.com/dsoprea/go-exif/v3 v3.0.0-20200722033536-33ee3a8313da h1:L/UYVj2DUQWl
 github.com/dsoprea/go-exif/v3 v3.0.0-20200722033536-33ee3a8313da/go.mod h1:cg5SNYKHMmzxsr9X6ZeLh/nfBRHHp5PngtEPcujONtk=
 github.com/dsoprea/go-exif/v3 v3.0.0-20200807075213-089aa48c91e6 h1:AWLaaemM6TvO4DVwMtXibJKpWWfyw+tiZwYUiueLPzE=
 github.com/dsoprea/go-exif/v3 v3.0.0-20200807075213-089aa48c91e6/go.mod h1:cg5SNYKHMmzxsr9X6ZeLh/nfBRHHp5PngtEPcujONtk=
+github.com/dsoprea/go-exif/v3 v3.0.0-20210428042052-dca55bf8ca15 h1:QQjMErNKRqrPUfRmdBpICftkac6holciY+B95S002fY=
+github.com/dsoprea/go-exif/v3 v3.0.0-20210428042052-dca55bf8ca15/go.mod h1:cg5SNYKHMmzxsr9X6ZeLh/nfBRHHp5PngtEPcujONtk=
 github.com/dsoprea/go-iptc v0.0.0-20200609062250-162ae6b44feb h1:gwjJjUr6FY7zAWVEueFPrcRHhd9+IK81TcItbqw2du4=
 github.com/dsoprea/go-iptc v0.0.0-20200609062250-162ae6b44feb/go.mod h1:kYIdx9N9NaOyD7U6D+YtExN7QhRm+5kq7//yOsRXQtM=
 github.com/dsoprea/go-logging v0.0.0-20190624164917-c4f10aab7696 h1:VGFnZAcLwPpt1sHlAxml+pGLZz9A2s+K/s1YNhPC91Y=
