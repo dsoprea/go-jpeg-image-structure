@@ -8,7 +8,7 @@ import (
 
 	"io/ioutil"
 
-	"github.com/dsoprea/go-logging"
+	log "github.com/dsoprea/go-logging"
 )
 
 func TestJpegMediaParser_Parse(t *testing.T) {
@@ -45,28 +45,32 @@ func TestJpegMediaParser_Parse(t *testing.T) {
 			Offset:   0x000080b4,
 		},
 		{
+			MarkerId: 0xe1,
+			Offset:   0x80b8,
+		},
+		{
 			MarkerId: 0xdb,
-			Offset:   0x8ab6,
+			Offset:   0x8aba,
 		},
 		{
 			MarkerId: 0xc0,
-			Offset:   0x8b3c,
+			Offset:   0x8b40,
 		},
 		{
 			MarkerId: 0xc4,
-			Offset:   0x8b4f,
+			Offset:   0x8b53,
 		},
 		{
 			MarkerId: 0xda,
-			Offset:   0x8cf3,
+			Offset:   0x8cf7,
 		},
 		{
 			MarkerId: 0x0,
-			Offset:   0x8cf5,
+			Offset:   0x8cf9,
 		},
 		{
 			MarkerId: 0xd9,
-			Offset:   0x554d6d,
+			Offset:   0x554d71,
 		},
 	}
 
@@ -110,28 +114,32 @@ func TestJpegMediaParser_ParseBytes(t *testing.T) {
 			Offset:   0x000080b4,
 		},
 		{
+			MarkerId: 0xe1,
+			Offset:   0x80b8,
+		},
+		{
 			MarkerId: 0xdb,
-			Offset:   0x8ab6,
+			Offset:   0x8aba,
 		},
 		{
 			MarkerId: 0xc0,
-			Offset:   0x8b3c,
+			Offset:   0x8b40,
 		},
 		{
 			MarkerId: 0xc4,
-			Offset:   0x8b4f,
+			Offset:   0x8b53,
 		},
 		{
 			MarkerId: 0xda,
-			Offset:   0x8cf3,
+			Offset:   0x8cf7,
 		},
 		{
 			MarkerId: 0x0,
-			Offset:   0x8cf5,
+			Offset:   0x8cf9,
 		},
 		{
 			MarkerId: 0xd9,
-			Offset:   0x554d6d,
+			Offset:   0x554d71,
 		},
 	}
 

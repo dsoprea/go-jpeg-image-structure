@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/dsoprea/go-logging"
+	log "github.com/dsoprea/go-logging"
 )
 
 type collectorVisitor struct {
@@ -80,7 +80,7 @@ func Test_JpegSplitter_Split(t *testing.T) {
 		t.Fatalf("error while scanning: %v", s.Err())
 	}
 
-	expectedMarkers := []byte{0xd8, 0xe1, 0xe1, 0xdb, 0xc0, 0xc4, 0xda, 0x00, 0xd9}
+	expectedMarkers := []byte{0xd8, 0xe1, 0xe1, 0xe1, 0xdb, 0xc0, 0xc4, 0xda, 0x00, 0xd9}
 
 	if bytes.Compare(v.markerList, expectedMarkers) != 0 {
 		t.Fatalf("Markers found are not correct: %v\n", DumpBytesToString(v.markerList))

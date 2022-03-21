@@ -10,9 +10,9 @@ import (
 	"io/ioutil"
 
 	"github.com/dsoprea/go-exif/v3"
-	"github.com/dsoprea/go-exif/v3/common"
-	"github.com/dsoprea/go-exif/v3/undefined"
-	"github.com/dsoprea/go-logging"
+	exifcommon "github.com/dsoprea/go-exif/v3/common"
+	exifundefined "github.com/dsoprea/go-exif/v3/undefined"
+	log "github.com/dsoprea/go-logging"
 )
 
 func TestSegmentList_Write(t *testing.T) {
@@ -541,7 +541,7 @@ func TestSegmentList_FindXmp(t *testing.T) {
 	segmentNumber, s, err := sl.FindXmp()
 	log.PanicIf(err)
 
-	if segmentNumber != 2 {
+	if segmentNumber != 3 {
 		t.Fatalf("XMP not found in right position: (%d)", segmentNumber)
 	}
 
