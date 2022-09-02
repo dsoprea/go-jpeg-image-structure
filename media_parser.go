@@ -114,12 +114,8 @@ func (jmp *JpegMediaParser) LooksLikeFormat(data []byte) bool {
 		return false
 	}
 
-	l := len(data)
-	if data[0] != 0xff || data[1] != MARKER_SOI || data[l-2] != 0xff || data[l-1] != MARKER_EOI {
-		return false
-	}
-
-	return true
+	// https://cs.opensource.google/go/go/+/master:src/net/http/sniff.go;l=126;drc=8b364451e2e2f2f816ed877a4639d9342279f299
+	return bytes.HasPrefix(data, []byte("\xFF\xD8\xFF"))
 }
 
 var (
