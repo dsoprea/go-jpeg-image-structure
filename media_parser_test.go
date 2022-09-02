@@ -252,7 +252,7 @@ func TestJpegMediaParser_LooksLikeFormat(t *testing.T) {
 		jmp := NewJpegMediaParser()
 
 		if jmp.LooksLikeFormat(data) != true {
-			t.Fatalf("(%s) not detected as JPEG", filepath)
+			t.Fatalf("[%s] not detected as JPEG", filepath)
 		}
 	}
 }
