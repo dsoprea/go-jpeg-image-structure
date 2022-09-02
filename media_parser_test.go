@@ -240,14 +240,19 @@ func TestJpegMediaParser_ParseBytes_MultipleEois(t *testing.T) {
 }
 
 func TestJpegMediaParser_LooksLikeFormat(t *testing.T) {
-	filepath := GetTestImageFilepath()
+	imgs := []string{
+		GetTestImageFilepath(),
+		GetTestImageFujiFilepath(),
+	}
 
-	data, err := ioutil.ReadFile(filepath)
-	log.PanicIf(err)
+	for _, filepath := range imgs {
+		data, err := ioutil.ReadFile(filepath)
+		log.PanicIf(err)
 
-	jmp := NewJpegMediaParser()
+		jmp := NewJpegMediaParser()
 
-	if jmp.LooksLikeFormat(data) != true {
-		t.Fatalf("not detected as JPEG")
+		if jmp.LooksLikeFormat(data) != true {
+			t.Fatalf("(%s) not detected as JPEG", filepath)
+		}
 	}
 }

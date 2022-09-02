@@ -8,7 +8,8 @@ import (
 )
 
 var (
-	testImageRelFilepath = "NDM_8901.jpg"
+	testImageRelFilepath  = "NDM_8901.jpg"
+	testImageFujiFilepath = "FUJI.jpg"
 )
 
 var (
@@ -68,6 +69,14 @@ func GetTestAssetsPath() string {
 func GetTestImageFilepath() string {
 	assetsPath := GetTestAssetsPath()
 	filepath := path.Join(assetsPath, testImageRelFilepath)
+
+	return filepath
+}
+
+// GetTestImageFujiFilepath returns the file-path of the fuji camera test image.
+func GetTestImageFujiFilepath() string {
+	assetsPath := GetTestAssetsPath()
+	filepath := path.Join(assetsPath, testImageFujiFilepath)
 
 	return filepath
 }
